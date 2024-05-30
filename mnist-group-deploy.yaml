@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist
+spec:
+  parallelism: 4
+  completions: 4
+  template:
+    metadata:
+      labels:
+        app: mnist-group
+      annotations:
+        scheduling.sigs.k8s.io/pod-group-name: mnist-group
+        scheduling.sigs.k8s.io/pod-group-min-available: "4"
+    spec:
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "4"
+        - name: RANK
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+      schedulerName: scheduler-plugins-scheduler
+      restartPolicy: OnFailure
