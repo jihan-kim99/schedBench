@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-job
+  labels:
+    app: mnist
+spec:
+  parallelism: 2
+  template:
+    metadata:
+      labels:
+        app: mnist
+    spec:
+      containers:
+      - name: mnist-image
+        image: jinnkenny99/mnist_image:latest
+        ports:
+        - containerPort: 5000
+      restartPolicy: Never
