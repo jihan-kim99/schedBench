@@ -81,7 +81,7 @@ def train(rank, world_size):
 
     # Cleanup
     dist.destroy_process_group()
-    
+
 
 if __name__ == "__main__":
     world_size = int(os.environ['WORLD_SIZE'])

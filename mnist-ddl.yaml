@@ -3,6 +3,8 @@ kind: Job
 metadata:
   name: mnist0
 spec:
+  parallelism: 4
+  completions: 4
   template:
     metadata:
       labels:
