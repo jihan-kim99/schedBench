@@ -1,4 +1,3 @@
-# deploy.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,5 +15,13 @@ spec:
     spec:
       containers:
       - name: pause
-        image: registry.k8s.io/pause:3.6
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "2"
+        - name: RANK
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
       schedulerName: scheduler-plugins-scheduler
+      

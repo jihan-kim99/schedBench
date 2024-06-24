@@ -1,10 +1,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mnist
+  name: mnist1
 spec:
-  parallelism: 2
-  completions: 2
   template:
     metadata:
       labels:
@@ -18,9 +16,14 @@ spec:
         - name: WORLD_SIZE
           value: "2"
         - name: RANK
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+          value: "1"
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
       schedulerName: scheduler-plugins-scheduler
       restartPolicy: Never
       
