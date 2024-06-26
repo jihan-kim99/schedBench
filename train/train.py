@@ -1,13 +1,14 @@
 import os
+import socket
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.distributed as dist
-import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-from torchvision import datasets, models
+from torchvision import datasets
 
 # Define the neural network model
 class Net(nn.Module):
@@ -40,7 +41,8 @@ def train(rank, world_size):
     
     # Set device
     torch.manual_seed(0)
-    device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+
+    device = torch.device("cpu")
     
     # Load data
     transform = transforms.Compose([
@@ -53,7 +55,7 @@ def train(rank, world_size):
     
     # Create model
     model = Net().to(device)
-    model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
+    model = nn.parallel.DistributedDataParallel(model)
     
     # Define loss function and optimizer
     criterion = nn.NLLLoss().to(device)
@@ -61,6 +63,10 @@ def train(rank, world_size):
     
     # Training loop
     model.train()
+
+    print(f'Rank: {rank}')
+    print('Training started')
+
     for epoch in range(5):
         train_sampler.set_epoch(epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
@@ -86,4 +92,20 @@ def train(rank, world_size):
 if __name__ == "__main__":
     world_size = int(os.environ['WORLD_SIZE'])
     rank = int(os.environ['RANK'])
+
+    while not os.path.exists('/mnt/data/ip'):
+        time.sleep(1)
+
+    print('IP address file found')
+    
+    with open('/mnt/data/ip', 'r') as file:
+        ip_address = file.read().strip()
+        os.environ['MASTER_ADDR'] = ip_address
+        print(f'IP Address: {ip_address}')
+    
     train(rank, world_size)
+
+    print('Training completed')
+
+    if(rank == 0):
+        os.remove('/mnt/data/ip')

@@ -4,4 +4,4 @@ metadata:
   name: mg1
 spec:
   scheduleTimeoutSeconds: 10
-  minMember: 2
+  minMember: 4
