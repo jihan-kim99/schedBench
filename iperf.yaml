@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: iperf3
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: iperf3
+  template:
+    metadata:
+      labels:
+        app: iperf3
+    spec:
+      containers:
+      - name: iperf3
+        image: networkstatic/iperf3
+        args: ["-s"]
+        ports:
+        - containerPort: 5201
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      restartPolicy: Always

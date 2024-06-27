@@ -1,5 +1,4 @@
 import os
-import socket
 import time
 import torch
 import torch.nn as nn
@@ -49,9 +48,15 @@ def train(rank, world_size):
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
-    dataset = datasets.MNIST('/mnt/data', train=True, download=True, transform=transform)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=64, sampler=train_sampler)
+
+    full_dataset = datasets.MNIST('/mnt/data', train=True, download=True, transform=transform)
+
+# Use only half of the dataset
+    half_dataset_size = len(full_dataset) // 4
+    half_dataset_indices = torch.arange(half_dataset_size)  # Assuming you want the first half; adjust as needed
+    half_dataset = torch.utils.data.Subset(full_dataset, half_dataset_indices)
+    train_sampler = torch.utils.data.distributed.DistributedSampler(half_dataset, num_replicas=world_size, rank=rank)
+    train_loader = torch.utils.data.DataLoader(half_dataset, batch_size=64, sampler=train_sampler)
     
     # Create model
     model = Net().to(device)
@@ -67,7 +72,7 @@ def train(rank, world_size):
     print(f'Rank: {rank}')
     print('Training started')
 
-    for epoch in range(5):
+    for epoch in range(2):
         train_sampler.set_epoch(epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(device), target.to(device)
@@ -77,13 +82,33 @@ def train(rank, world_size):
             loss.backward()
             optimizer.step()
             if batch_idx % 10 == 0 and rank == 0:
-                print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)}] Loss: {loss.item():.6f}')
-    
+                with open('/mnt/data/log', 'a') as file:
+                    file.write(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)}] Loss: {loss.item():.6f}\n')
+                print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset) / 4}] Loss: {loss.item():.6f}')
+
     # Synchronize model parameters
     parameter_server(model)
 
     if rank == 0:
-        torch.save(model.state_dict(), '/mnt/data/model/model.pth')
+        torch.save(model.state_dict(), '/mnt/data/model.pth')
+        # Evaluate model accuracy
+        print('eval start')
+        model.eval()
+        test_dataset = datasets.MNIST('/mnt/data', train=False, download=True, transform=transform)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(device), target.to(device)
+                output = model(data)
+                _, predicted = torch.max(output.data, 1)
+                total += target.size(0)
+                correct += (predicted == target).sum().item()
+        accuracy = 100 * correct / total
+        print(f'Accuracy: {accuracy}%')
+        with open('/mnt/data/log', 'a') as file:
+            file.write(f'Accuracy: {accuracy}%\n')
 
     # Cleanup
     dist.destroy_process_group()
@@ -96,8 +121,11 @@ if __name__ == "__main__":
     while not os.path.exists('/mnt/data/ip'):
         time.sleep(1)
 
-    print('IP address file found')
-    
+    with open('/mnt/data/log', 'a') as file:
+        file.write('=======================\n')
+        file.write(f'Rank: {rank}\n')
+        file.write('Training started\n')
+
     with open('/mnt/data/ip', 'r') as file:
         ip_address = file.read().strip()
         os.environ['MASTER_ADDR'] = ip_address

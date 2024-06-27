@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-0
+spec:
+  template:
+    metadata:
+      labels:
+        app: mnist
+        scheduling.x-k8s.io/pod-group: mg1
+    spec:
+      initContainers:
+      - name: write-rank0-ip
+        image: jinnkenny99/ddl-init
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+        env:
+        - name: RANK
+          value: "0"
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "1"
+        - name: RANK
+          value: "0"
+        - name: MASTER_PORT
+          value: '80'
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
+      schedulerName: scheduler-plugins-scheduler
+      restartPolicy: Never

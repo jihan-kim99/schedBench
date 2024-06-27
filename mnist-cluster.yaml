@@ -25,3 +25,31 @@ nodes:
     hostPort: 82
     listenAddress: "0.0.0.0"
     protocol: TCP
+- role: worker
+  image: kindest/node:v1.21.1
+  extraPortMappings:
+  - containerPort: 30003
+    hostPort: 83
+    listenAddress: "0.0.0.0"
+    protocol: TCP
+- role: worker
+  image: kindest/node:v1.21.1
+  extraPortMappings:
+  - containerPort: 30004
+    hostPort: 84
+    listenAddress: "0.0.0.0"
+    protocol: TCP
+- role: worker
+  image: kindest/node:v1.21.1
+  extraPortMappings:
+  - containerPort: 30004
+    hostPort: 85
+    listenAddress: "0.0.0.0"
+    protocol: TCP
+- role: worker
+  image: kindest/node:v1.21.1
+  extraPortMappings:
+  - containerPort: 30004
+    hostPort: 86
+    listenAddress: "0.0.0.0"
+    protocol: TCP
