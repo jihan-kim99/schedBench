@@ -1,45 +1,42 @@
-# Example App Group CRD spec
-apiVersion: appgroup.diktyo.x-k8s.io/v1alpha1
-kind: AppGroup
+apiVersion: networktopology.diktyo.x-k8s.io/v1alpha1
+kind: NetworkTopology
 metadata:
-  name: a1
+  name: net-topology-test
+  namespace: default
 spec:
-  numMembers: 3
-  topologySortingAlgorithm: KahnSort
-  workloads:
-    - workload:
-        kind: Deployment
-        name: p1
-        selector: p1
-        apiVersion: apps/v1
-        namespace: default
-      dependencies:
-        - workload:
-            kind: Deployment
-            name: p2
-            selector: p2
-            apiVersion: apps/v1
-            namespace: default
-          minBandwidth: "100Mi"
-          maxNetworkCost: 30
-    - workload:
-        kind: Deployment
-        name: p2
-        selector: p2
-        apiVersion: apps/v1
-        namespace: default
-      dependencies:
-        - workload:
-            kind: Deployment
-            name: p3
-            selector: p3
-            apiVersion: apps/v1
-            namespace: default
-          minBandwidth: "250Mi"
-          maxNetworkCost: 20
-    - workload:
-        kind: Deployment
-        name: p3
-        selector: p3
-        apiVersion: apps/v1
-        namespace: default
+  configmapName: "netperfMetrics"
+  weights:
+    - name: "UserDefined"
+      topologyList: # Define weights between regions or between zones 
+        - topologyKey: "topology.kubernetes.io/region" # region costs
+          originList:
+            - origin: "zone-a"
+              costList:
+                - destination: "zone-b"
+                  networkCost: 10
+                  bandwidthAllocated: "100Mi"
+                  bandwidthCapacity: "1Gi"
+                - destination: "zone-c"
+                  networkCost: 20
+                  bandwidthAllocated: "50Mi"
+                  bandwidthCapacity: "500Mi"
+            - origin: "zone-b"
+              costList:
+                - destination: "zone-a"
+                  networkCost: 10
+                  bandwidthAllocated: "100Mi"
+                  bandwidthCapacity: "1Gi"
+                - destination: "zone-c"
+                  networkCost: 20
+                  bandwidthAllocated: "50Mi"
+                  bandwidthCapacity: "500Mi"
+            - origin: "zone-c"
+              costList:
+                - destination: "zone-a"
+                  networkCost: 20
+                  bandwidthAllocated: "50Mi"
+                  bandwidthCapacity: "500Mi"
+                - destination: "zone-b"
+                  networkCost: 20
+                  bandwidthAllocated: "50Mi"
+                  bandwidthCapacity: "500Mi"
