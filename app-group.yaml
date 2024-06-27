@@ -1,4 +1,3 @@
-# Example App Group CRD spec
 apiVersion: appgroup.diktyo.x-k8s.io/v1alpha1
 kind: AppGroup
 metadata:
