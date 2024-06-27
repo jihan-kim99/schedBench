@@ -1,0 +1,7 @@
+[
+  {
+    "op": "add",
+    "path": "/status/capacity/network.aware.com~1bandwidth",
+    "value": "10000000000"
+  }
+]
