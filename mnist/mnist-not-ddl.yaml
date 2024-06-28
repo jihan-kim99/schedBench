@@ -1,0 +1,145 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-0
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: write-rank0-ip
+        image: jinnkenny99/ddl-init
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+        env:
+        - name: RANK
+          value: "0"
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "4"
+        - name: RANK
+          value: "0"
+        - name: MASTER_PORT
+          value: '80'
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
+      restartPolicy: Never
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-1
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: read-rank0-ip
+        image: jinnkenny99/ddl-init
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+        env:
+        - name: RANK
+          value: "1"
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "4"
+        - name: RANK
+          value: "1"
+        - name: MASTER_PORT
+          value: '80'
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
+      restartPolicy: Never
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-2
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: read-rank0-ip
+        image: jinnkenny99/ddl-init
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+        env:
+        - name: RANK
+          value: "2"
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "4"
+        - name: RANK
+          value: "2"
+        - name: MASTER_PORT
+          value: '80'
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
+      restartPolicy: Never
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mnist-3
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: read-rank0-ip
+        image: jinnkenny99/ddl-init
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+        env:
+        - name: RANK
+          value: "3"
+      containers:
+      - name: mnist
+        image: jinnkenny99/dist-mnist:latest
+        env:
+        - name: WORLD_SIZE
+          value: "4"
+        - name: RANK
+          value: "3"
+        - name: MASTER_PORT
+          value: '80'
+        volumeMounts:
+        - name: mnist-pvc
+          mountPath: /mnt/data
+      volumes:
+      - name: mnist-pvc
+        persistentVolumeClaim:
+          claimName: mnist-pvc
+      restartPolicy: Never
