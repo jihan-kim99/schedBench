@@ -1,128 +1,253 @@
+import os
+import threading
+import time
+from functools import wraps
+
 import torch
 import torch.nn as nn
-import torch.distributed.rpc as rpc
 import torch.distributed.autograd as dist_autograd
-from torch.distributed.optim import DistributedOptimizer
+import torch.distributed.rpc as rpc
+import torch.multiprocessing as mp
 import torch.optim as optim
-import os
+from torch.distributed.optim import DistributedOptimizer
+from torch.distributed.rpc import RRef
 
-from torchtext.datasets import PennTreebank
-from torchtext.data.utils import get_tokenizer
-from collections import Counter
-from torchtext.vocab import Vocab
-
-# Tokenizer and data loading
-tokenizer = get_tokenizer("basic_english")
-train_iter = PennTreebank(split='train')
-
-# Build the vocabulary
-counter = Counter()
-for line in train_iter:
-    counter.update(tokenizer(line))
-vocab = Vocab(counter, max_size=5000)
-
-# Prepare the data
-vocab_size = len(vocab)
-seq_len = 50
-batch_size = 32
-embed_size = 128
-hidden_size = 256
-output_size = 5000
-
-def batchify(data, bsz):
-    # Convert tokenized data into a tensor, then batch it
-    tokens = [vocab[token] for token in tokenizer(data)]
-    num_batches = len(tokens) // (bsz * seq_len)
-    tokens = tokens[:num_batches * bsz * seq_len]
-    return torch.tensor(tokens).view(bsz, -1)
-
-# Example usage
-train_data = batchify(train_iter, batch_size)
-
-# Embedding Table Component
-class EmbeddingModel(nn.Module):
-    def __init__(self, vocab_size, embed_size):
-        super(EmbeddingModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embed_size)
-
-    def forward(self, x):
-        return self.embedding(x)
-
-# LSTM Component
-class LSTMModel(nn.Module):
-    def __init__(self, embed_size, hidden_size):
-        super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(embed_size, hidden_size, batch_first=True)
-
-    def forward(self, x, h):
-        return self.lstm(x, h)
-
-# Decoder Component
-class DecoderModel(nn.Module):
-    def __init__(self, hidden_size, output_size):
-        super(DecoderModel, self).__init__()
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        return self.fc(x)
+from torchvision.models.resnet import Bottleneck
 
 
-# Distributed forward and backward pass using RPC
+#########################################################
+#           Define Model Parallel ResNet50              #
+#########################################################
 
-# Create remote references to the model components
-embedding_rref = rpc.remote("worker1", EmbeddingModel, args=(vocab_size, embed_size))
-lstm_rref = rpc.remote("worker2", LSTMModel, args=(embed_size, hidden_size))
-decoder_rref = rpc.remote("worker3", DecoderModel, args=(hidden_size, output_size))
+# In order to split the ResNet50 and place it on two different workers, we
+# implement it in two model shards. The ResNetBase class defines common
+# attributes and methods shared by two shards. ResNetShard1 and ResNetShard2
+# contain two partitions of the model layers respectively.
 
-def forward(input_data, hidden):
-    # Forward pass through embedding -> lstm -> decoder
-    embed_output = embedding_rref.rpc_sync().forward(input_data)
-    lstm_output, hidden = lstm_rref.rpc_sync().forward(embed_output, hidden)
-    output = decoder_rref.rpc_sync().forward(lstm_output)
-    return output, hidden
 
-def train_step(input_data, target, hidden, loss_fn):
-    # Forward pass with distributed autograd context
-    with dist_autograd.context() as context_id:
-        output, hidden = forward(input_data, hidden)
-        loss = loss_fn(output, target)
-        
-        # Backward pass
-        dist_autograd.backward(context_id, [loss])
-        
-        # Update parameters with distributed optimizer
-        optimizer = DistributedOptimizer(
-            optim.SGD,
-            # Get all remote parameters from the RRefs
-            params=[
-                embedding_rref.remote().parameters(),
-                lstm_rref.remote().parameters(),
-                decoder_rref.remote().parameters()
-            ]
+num_classes = 1000
+
+
+def conv1x1(in_planes, out_planes, stride=1):
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+class ResNetBase(nn.Module):
+    def __init__(self, block, inplanes, num_classes=1000,
+                 groups=1, width_per_group=64, norm_layer=None):
+        super(ResNetBase, self).__init__()
+
+        self._lock = threading.Lock()
+        self._block = block
+        self._norm_layer = nn.BatchNorm2d
+        self.inplanes = inplanes
+        self.dilation = 1
+        self.groups = groups
+        self.base_width = width_per_group
+
+    def _make_layer(self, planes, blocks, stride=1):
+        norm_layer = self._norm_layer
+        downsample = None
+        previous_dilation = self.dilation
+        if stride != 1 or self.inplanes != planes * self._block.expansion:
+            downsample = nn.Sequential(
+                conv1x1(self.inplanes, planes * self._block.expansion, stride),
+                norm_layer(planes * self._block.expansion),
+            )
+
+        layers = []
+        layers.append(self._block(self.inplanes, planes, stride, downsample, self.groups,
+                                  self.base_width, previous_dilation, norm_layer))
+        self.inplanes = planes * self._block.expansion
+        for _ in range(1, blocks):
+            layers.append(self._block(self.inplanes, planes, groups=self.groups,
+                                      base_width=self.base_width, dilation=self.dilation,
+                                      norm_layer=norm_layer))
+
+        return nn.Sequential(*layers)
+
+    def parameter_rrefs(self):
+        r"""
+        Create one RRef for each parameter in the given local module, and return a
+        list of RRefs.
+        """
+        return [RRef(p) for p in self.parameters()]
+
+
+class ResNetShard1(ResNetBase):
+    """
+    The first part of ResNet.
+    """
+    def __init__(self, device, *args, **kwargs):
+        super(ResNetShard1, self).__init__(
+            Bottleneck, 64, num_classes=num_classes, *args, **kwargs)
+
+        self.device = device
+        self.seq = nn.Sequential(
+            nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False),
+            self._norm_layer(self.inplanes),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            self._make_layer(64, 3),
+            self._make_layer(128, 4, stride=2)
+        ).to(self.device)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x_rref):
+        x = x_rref.to_here().to(self.device)
+        with self._lock:
+            out =  self.seq(x)
+        return out.cpu()
+
+
+class ResNetShard2(ResNetBase):
+    """
+    The second part of ResNet.
+    """
+    def __init__(self, device, *args, **kwargs):
+        super(ResNetShard2, self).__init__(
+            Bottleneck, 512, num_classes=num_classes, *args, **kwargs)
+
+        self.device = device
+        self.seq = nn.Sequential(
+            self._make_layer(256, 6, stride=2),
+            self._make_layer(512, 3, stride=2),
+            nn.AdaptiveAvgPool2d((1, 1)),
+        ).to(self.device)
+
+        self.fc =  nn.Linear(512 * self._block.expansion, num_classes).to(self.device)
+
+    def forward(self, x_rref):
+        x = x_rref.to_here().to(self.device)
+        with self._lock:
+            out = self.fc(torch.flatten(self.seq(x), 1))
+        return out.cpu()
+
+
+class DistResNet50(nn.Module):
+    """
+    Assemble two parts as an nn.Module and define pipelining logic
+    """
+    def __init__(self, split_size, workers, *args, **kwargs):
+        super(DistResNet50, self).__init__()
+
+        self.split_size = split_size
+
+        # Put the first part of the ResNet50 on workers[0]
+        self.p1_rref = rpc.remote(
+            workers[0],
+            ResNetShard1,
+            args = ("cuda:0",) + args,
+            kwargs = kwargs
         )
-        optimizer.step(context_id)
-    
-    return loss.item()
 
-def run_worker(rank, world_size):
-    rpc.init_rpc(f"worker{rank}", rank=rank, world_size=world_size)
-    
+        # Put the second part of the ResNet50 on workers[1]
+        self.p2_rref = rpc.remote(
+            workers[1],
+            ResNetShard2,
+            args = ("cuda:1",) + args,
+            kwargs = kwargs
+        )
+
+    def forward(self, xs):
+        # Split the input batch xs into micro-batches, and collect async RPC
+        # futures into a list
+        out_futures = []
+        for x in iter(xs.split(self.split_size, dim=0)):
+            x_rref = RRef(x)
+            y_rref = self.p1_rref.remote().forward(x_rref)
+            z_fut = self.p2_rref.rpc_async().forward(y_rref)
+            out_futures.append(z_fut)
+
+        # collect and cat all output tensors into one tensor.
+        return torch.cat(torch.futures.wait_all(out_futures))
+
+    def parameter_rrefs(self):
+        remote_params = []
+        remote_params.extend(self.p1_rref.remote().parameter_rrefs().to_here())
+        remote_params.extend(self.p2_rref.remote().parameter_rrefs().to_here())
+        return remote_params
+
+
+#########################################################
+#                   Run RPC Processes                   #
+#########################################################
+
+num_batches = 3
+batch_size = 120
+image_w = 128
+image_h = 128
+
+
+def run_master(split_size):
+
+    # put the two model parts on worker1 and worker2 respectively
+    model = DistResNet50(split_size, ["worker1", "worker2"])
+    loss_fn = nn.MSELoss()
+    opt = DistributedOptimizer(
+        optim.SGD,
+        model.parameter_rrefs(),
+        lr=0.05,
+    )
+
+    one_hot_indices = torch.LongTensor(batch_size) \
+                           .random_(0, num_classes) \
+                           .view(batch_size, 1)
+
+    for i in range(num_batches):
+        print(f"Processing batch {i}")
+        # generate random inputs and labels
+        inputs = torch.randn(batch_size, 3, image_w, image_h)
+        labels = torch.zeros(batch_size, num_classes) \
+                      .scatter_(1, one_hot_indices, 1)
+
+        # The distributed autograd context is the dedicated scope for the
+        # distributed backward pass to store gradients, which can later be
+        # retrieved using the context_id by the distributed optimizer.
+        with dist_autograd.context() as context_id:
+            outputs = model(inputs)
+            dist_autograd.backward(context_id, [loss_fn(outputs, labels)])
+            opt.step(context_id)
+
+
+def run_worker(rank, world_size, num_split):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '29500'
+
+    # Higher timeout is added to accommodate for kernel compilation time in case of ROCm.
+    options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=256, rpc_timeout=300)
+
     if rank == 0:
-        input_data = torch.randint(0, vocab_size, (batch_size, seq_len))
-        target = torch.randint(0, output_size, (batch_size,))
-        hidden = None  
+        rpc.init_rpc(
+            "master",
+            rank=rank,
+            world_size=world_size,
+            rpc_backend_options=options
+        )
+        run_master(num_split)
+    else:
+        rpc.init_rpc(
+            f"worker{rank}",
+            rank=rank,
+            world_size=world_size,
+            rpc_backend_options=options
+        )
+        pass
 
-        # Define a loss function
-        loss_fn = nn.CrossEntropyLoss()
-
-        # Train the model in a single step
-        loss = train_step(input_data, target, hidden, loss_fn)
-        print(f"Loss: {loss}")
-
+    # block until all rpcs finish
     rpc.shutdown()
 
-if __name__ == "__main__":
-    rank = int(os.environ['RANK'])
-    world_size = int(os.environ['WORLD_SIZE'])
-    
-    run_worker(rank, world_size)
+
+if __name__=="__main__":
+    world_size = 3
+    for num_split in [1, 2, 4, 8]:
+        tik = time.time()
+        mp.spawn(run_worker, args=(world_size, num_split), nprocs=world_size, join=True)
+        tok = time.time()
+        print(f"number of splits = {num_split}, execution time = {tok - tik}")
