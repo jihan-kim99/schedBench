@@ -1,13 +1,10 @@
 import os
 import threading
-import time
-from functools import wraps
 
 import torch
 import torch.nn as nn
 import torch.distributed.autograd as dist_autograd
 import torch.distributed.rpc as rpc
-import torch.multiprocessing as mp
 import torch.optim as optim
 from torch.distributed.optim import DistributedOptimizer
 from torch.distributed.rpc import RRef
@@ -186,7 +183,6 @@ image_h = 128
 
 
 def run_master(split_size):
-
     # put the two model parts on worker1 and worker2 respectively
     model = DistResNet50(split_size, ["worker1", "worker2"])
     loss_fn = nn.MSELoss()
@@ -217,12 +213,8 @@ def run_master(split_size):
 
 
 def run_worker(rank, world_size, num_split):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29500'
-
     # Higher timeout is added to accommodate for kernel compilation time in case of ROCm.
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=256, rpc_timeout=300)
-
     if rank == 0:
         rpc.init_rpc(
             "master",
@@ -239,15 +231,28 @@ def run_worker(rank, world_size, num_split):
             rpc_backend_options=options
         )
         pass
-
     # block until all rpcs finish
     rpc.shutdown()
 
-
 if __name__=="__main__":
-    world_size = 3
-    for num_split in [1, 2, 4, 8]:
-        tik = time.time()
-        mp.spawn(run_worker, args=(world_size, num_split), nprocs=world_size, join=True)
-        tok = time.time()
-        print(f"number of splits = {num_split}, execution time = {tok - tik}")
+
+    world_size = int(os.environ['WORLD_SIZE'])
+    env_vars = os.environ
+    if '0' in env_vars.values():
+        rank = 0
+    elif '1' in env_vars.values():
+        rank = 1
+    else:
+        rank = 2
+
+    if(rank == 0):
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = '29500'
+
+    with open('/mnt/data/ip', 'r') as file:
+        ip_address = file.read().strip()
+        os.environ['MASTER_ADDR'] = ip_address
+        print(f'IP Address: {ip_address}')
+        os.environ['MASTER_PORT'] = '29500'
+    
+    run_worker(rank, world_size, num_split=1)
