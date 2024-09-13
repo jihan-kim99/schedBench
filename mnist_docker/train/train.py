@@ -30,7 +30,20 @@ class Net(nn.Module):
 
 # Parameter server setup
 def parameter_server(model):
+    world_size = dist.get_world_size()  # Get the total number of nodes
+    with open('/mnt/data/log', 'a') as file:
+        file.write('synched\n')
+        
     for param in model.parameters():
+        # Create a list to hold the parameters gathered from all nodes
+        gathered_params = [torch.zeros_like(param.data) for _ in range(world_size)]
+        # Gather parameters from all nodes
+        dist.all_gather(gathered_params, param.data)
+        # Compute the average of the gathered parameters
+        averaged_param = torch.mean(torch.stack(gathered_params), dim=0)
+        # Update the model parameter with the averaged value
+        param.data = averaged_param
+        # Broadcast the averaged parameters to all nodes
         dist.broadcast(param.data, src=0)
 
 # Training function
@@ -49,14 +62,10 @@ def train(rank, world_size):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
-    full_dataset = datasets.MNIST('/mnt/data', train=True, download=True, transform=transform)
+    dataset = datasets.MNIST('/mnt/data', train=True, download=True, transform=transform)
 
-# Use only half of the dataset
-    half_dataset_size = len(full_dataset) // 4
-    half_dataset_indices = torch.arange(half_dataset_size)  # Assuming you want the first half; adjust as needed
-    half_dataset = torch.utils.data.Subset(full_dataset, half_dataset_indices)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(half_dataset, num_replicas=world_size, rank=rank)
-    train_loader = torch.utils.data.DataLoader(half_dataset, batch_size=64, sampler=train_sampler)
+    train_sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
+    train_loader = torch.utils.data.DataLoader(dataset, batch_size=64, sampler=train_sampler)
     
     # Create model
     model = Net().to(device)
@@ -72,7 +81,7 @@ def train(rank, world_size):
     print(f'Rank: {rank}')
     print('Training started')
 
-    for epoch in range(2):
+    for epoch in range(4):
         train_sampler.set_epoch(epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(device), target.to(device)
@@ -83,11 +92,10 @@ def train(rank, world_size):
             optimizer.step()
             if batch_idx % 10 == 0 and rank == 0:
                 with open('/mnt/data/log', 'a') as file:
-                    file.write(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)}] Loss: {loss.item():.6f}\n')
-                print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset) / 4}] Loss: {loss.item():.6f}')
-
-    # Synchronize model parameters
-    parameter_server(model)
+                    file.write(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset) / world_size}] Loss: {loss.item():.6f}\n')
+                print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset) / world_size}] Loss: {loss.item():.6f}')
+            # Synchronize model parameters
+            parameter_server(model)
 
     if rank == 0:
         torch.save(model.state_dict(), '/mnt/data/model.pth')
