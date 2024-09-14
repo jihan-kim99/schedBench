@@ -247,12 +247,12 @@ if __name__=="__main__":
 
     if(rank == 0):
         os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = '29500'
+        os.environ['MASTER_PORT'] = '80'
 
     with open('/mnt/data/ip', 'r') as file:
         ip_address = file.read().strip()
         os.environ['MASTER_ADDR'] = ip_address
         print(f'IP Address: {ip_address}')
-        os.environ['MASTER_PORT'] = '29500'
+        os.environ['MASTER_PORT'] = '80'
     
     run_worker(rank, world_size, num_split=1)
