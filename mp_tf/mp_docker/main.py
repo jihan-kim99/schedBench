@@ -147,7 +147,7 @@ class DistResNet50(nn.Module):
         self.p1_rref = rpc.remote(
             workers[0],
             ResNetShard1,
-            args = ("cuda:0",) + args,
+            args = ("cpu",) + args,
             kwargs = kwargs
         )
 
@@ -155,7 +155,7 @@ class DistResNet50(nn.Module):
         self.p2_rref = rpc.remote(
             workers[1],
             ResNetShard2,
-            args = ("cuda:1",) + args,
+            args = ("cpu",) + args,
             kwargs = kwargs
         )
 
@@ -191,6 +191,7 @@ image_h = 128
 
 def run_master(split_size):
     # put the two model parts on worker1 and worker2 respectively
+    logger.info("master is running")
     model = DistResNet50(split_size, ["worker1", "worker2"])
     loss_fn = nn.MSELoss()
     opt = DistributedOptimizer(
@@ -266,6 +267,8 @@ if __name__=="__main__":
             if rank == 0:
                 # If rank is 0, logger.info own IP address from the response
                 logger.info(f'IP Address: {response_json["message"]}')
+                res = 'localhost'
+                break
             else:
                 # Otherwise, retrieve and set the IP address from the response
                 res = response_json['ip']
