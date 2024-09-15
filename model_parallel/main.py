@@ -2,6 +2,8 @@ import os
 import threading
 import requests
 import socket
+import time
+import logging
 
 import torch
 import torch.nn as nn
@@ -9,6 +11,7 @@ import torch.distributed.autograd as dist_autograd
 import torch.distributed.rpc as rpc
 import torch.optim as optim
 from torch.distributed.optim import DistributedOptimizer
+
 from torch.distributed.rpc import RRef
 
 from torchvision.models.resnet import Bottleneck
@@ -23,6 +26,8 @@ from torchvision.models.resnet import Bottleneck
 # attributes and methods shared by two shards. ResNetShard1 and ResNetShard2
 # contain two partitions of the model layers respectively.
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 num_classes = 1000
 
@@ -199,7 +204,7 @@ def run_master(split_size):
                            .view(batch_size, 1)
 
     for i in range(num_batches):
-        print(f"Processing batch {i}")
+        logger.info(f"Processing batch {i} out of {num_batches}")
         # generate random inputs and labels
         inputs = torch.randn(batch_size, 3, image_w, image_h)
         labels = torch.zeros(batch_size, num_classes) \
@@ -244,29 +249,43 @@ if __name__=="__main__":
 
     world_size = int(os.environ['WORLD_SIZE'])
     rank = int(os.environ['RANK'])
+    logger.info(f'World Size: {world_size}, Rank: {rank}')
 
     res = ''
+    
     while res == '':
         try:
+            # Sending request with rank and IP address
             response = requests.post(url, json={
                 'rank': rank, 
                 'ip': socket.gethostbyname(socket.gethostname())
-                })
-            json = response.json()
-            if(rank == 0):
-                print(f'IP Address: {json["message"]}')
+            })
+            # Parse response
+            response_json = response.json()
+            logger.info(response_json)
+            if rank == 0:
+                # If rank is 0, logger.info own IP address from the response
+                logger.info(f'IP Address: {response_json["message"]}')
             else:
-                res = json['ip']
-                print(f'IP Address: {res}')
-        except:
-            pass
+                # Otherwise, retrieve and set the IP address from the response
+                res = response_json['ip']
+                logger.info(f'IP Address: {res}')
+        except requests.exceptions.RequestException as e:
+            # Catch specific exceptions related to the request
+            logger.info(f"Request failed: {e}")
+        except Exception as e:
+            # Catch other exceptions
+            logger.info(f"An error occurred: {e}")
+        time.sleep(5)
     
     if(rank == 0):
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '80'
     else:
         os.environ['MASTER_ADDR'] = res
-        print(f'IP Address: {res}')
+        logger.info(f'IP Address: {res}')
         os.environ['MASTER_PORT'] = '80'
+
+    logger.info('start')
     
     run_worker(rank, world_size, num_split=1)

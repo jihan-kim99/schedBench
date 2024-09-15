@@ -10,11 +10,11 @@ resource "kubernetes_job" "master" {
     name = "mp-test-${count.index}"
   }
 
-  wait_for_completion = true
-  timeouts {
-    create = "10m"
-    update = "2m"
-  }
+  # wait_for_completion = true
+  # timeouts {
+  #   create = "10m"
+  #   update = "2m"
+  # }
   spec {
     parallelism = 1
     completions = 1

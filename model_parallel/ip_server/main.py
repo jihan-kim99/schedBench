@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, logger
 from pydantic import BaseModel
 import uvicorn
 
@@ -17,11 +17,14 @@ async def handle_rank(request: RankRequest):
     if request.rank == 0:
         if request.ip:
             ip_storage['ip'] = request.ip
+            # logger.info(f"IP address saved: {request.ip}")
+            logger.logger.info(f"IP address saved: {request.ip}")
             return {"message": "IP address saved"}
         else:
             raise HTTPException(status_code=400, detail="IP address is required for rank 0")
     else:
         if 'ip' in ip_storage:
+            logger.logger.info(f"IP address retrieved: {ip_storage['ip']}")
             return {"ip": ip_storage['ip']}
         else:
             raise HTTPException(status_code=404, detail="IP address not found")
