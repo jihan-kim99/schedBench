@@ -1,4 +1,4 @@
-resource "kubernetes_deployment" "nfs_server" {
+resource "kubernetes_deployment" "nfs" {
   metadata {
     name = "nfs-server"
     labels = {
@@ -42,25 +42,18 @@ resource "kubernetes_deployment" "nfs_server" {
             container_port = 111
           }
 
-          security_context {
-            capabilities {
-              add = ["SYS_ADMIN", "SETPCAP"]
-            }
+          volume_mount {
+            name       = "nfs-share"
+            mount_path = "/nfsshare"
           }
-
           env {
             name  = "SHARED_DIRECTORY"
             value = "/nfsshare"
           }
-
-          volume_mount {
-            name       = "nfs-data"
-            mount_path = "/nfsshare"
-          }
         }
 
         volume {
-          name = "nfs-data"
+          name = "nfs-share"
           empty_dir {}
         }
       }
@@ -68,7 +61,7 @@ resource "kubernetes_deployment" "nfs_server" {
   }
 }
 
-# NFS Service
+
 resource "kubernetes_service" "nfs_service" {
   metadata {
     name = "nfs-service"
@@ -100,3 +93,4 @@ resource "kubernetes_service" "nfs_service" {
     }
   }
 }
+

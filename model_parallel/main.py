@@ -1,5 +1,7 @@
 import os
 import threading
+import requests
+import socket
 
 import torch
 import torch.nn as nn
@@ -234,25 +236,37 @@ def run_worker(rank, world_size, num_split):
     # block until all rpcs finish
     rpc.shutdown()
 
+
+
 if __name__=="__main__":
 
-    world_size = int(os.environ['WORLD_SIZE'])
-    env_vars = os.environ
-    if '0' in env_vars.values():
-        rank = 0
-    elif '1' in env_vars.values():
-        rank = 1
-    else:
-        rank = 2
+    url = "http://ip-service:8000/"
 
+    world_size = int(os.environ['WORLD_SIZE'])
+    rank = int(os.environ['RANK'])
+
+    res = ''
+    while res == '':
+        try:
+            response = requests.post(url, json={
+                'rank': rank, 
+                'ip': socket.gethostbyname(socket.gethostname())
+                })
+            json = response.json()
+            if(rank == 0):
+                print(f'IP Address: {json["message"]}')
+            else:
+                res = json['ip']
+                print(f'IP Address: {res}')
+        except:
+            pass
+    
     if(rank == 0):
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '80'
-
-    with open('/mnt/data/ip', 'r') as file:
-        ip_address = file.read().strip()
-        os.environ['MASTER_ADDR'] = ip_address
-        print(f'IP Address: {ip_address}')
+    else:
+        os.environ['MASTER_ADDR'] = res
+        print(f'IP Address: {res}')
         os.environ['MASTER_PORT'] = '80'
     
     run_worker(rank, world_size, num_split=1)
