@@ -19,7 +19,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-west-1"
+  region = var.region
 }
 
 # Filter out local zones, which are not currently supported 
