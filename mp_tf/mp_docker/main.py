@@ -290,5 +290,10 @@ if __name__=="__main__":
         os.environ['MASTER_PORT'] = '80'
 
     logger.info('start')
+    tik = time.time()
     
     run_worker(rank, world_size, num_split=1)
+
+    tok = time.time()
+    logger.info('end')
+    logger.info(f'Time taken: {(tok - tik) / 60 } minutes and {tok - tik % 60 } seconds')
