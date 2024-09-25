@@ -1,0 +1,92 @@
+[
+    {
+        "Id": "sha256:6fc5e6b7218c753ea7ebbd0320957218bad762c27a60319c6f4d8136b0840893",
+        "RepoTags": [
+            "registry.k8s.io/kube-scheduler:v1.29.2"
+        ],
+        "RepoDigests": [],
+        "Parent": "",
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2024-02-14T10:56:40.266712184Z",
+        "ContainerConfig": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": null,
+            "Cmd": null,
+            "Image": "",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": null
+        },
+        "DockerVersion": "",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "0",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+            ],
+            "Cmd": null,
+            "Image": "",
+            "Volumes": null,
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/go-runner"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "description": "go based runner for distroless scenarios",
+                "maintainers": "Kubernetes Authors"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 59540634,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/60d707b30863a8e9d912c9a4c945494bc07b19ea3cab3228dbd634c12c7b7202/diff:/var/lib/docker/overlay2/afc5802694c7352316a1688fbf6a07c5d708aafc99699a942876277cf734ef87/diff:/var/lib/docker/overlay2/1e6dff730c088c55b3b72b9d46767db6c43131d58ffddbc1b743b201941d92a7/diff:/var/lib/docker/overlay2/c3410e2bf78700963e9ac2d1c817a229cc1f5e9a986f3b558112d7172882f4f8/diff:/var/lib/docker/overlay2/2246c9c1f9b85b78273c597ef6f98967067c816fd5dc082f9c38552eff42acc4/diff:/var/lib/docker/overlay2/c70759f19791bc23abe4b3ec79b3acec3ed36bddf86895961887c4de60ae05bc/diff:/var/lib/docker/overlay2/aecb9c43c85f0f1488af752614a27f1570feed4c57d76ef16763b3e9631dcf77/diff:/var/lib/docker/overlay2/f7c18cb11763bb0d6cd5542ce1988955613478ee85d3aff9e1162218f2abf39b/diff:/var/lib/docker/overlay2/9100820bf9746b3239cdc2c508a7a60fcd9496259211b1be21958a1ef554874a/diff:/var/lib/docker/overlay2/8eed3c077be61d9ff7ae3e0f2a03930c2c85aae33c82c88bf0ca9082876c0127/diff",
+                "MergedDir": "/var/lib/docker/overlay2/edee4bb6d28e8028fd5ed5bcb4efd430d099cfd455e7006ef9f88d261b3cccc2/merged",
+                "UpperDir": "/var/lib/docker/overlay2/edee4bb6d28e8028fd5ed5bcb4efd430d099cfd455e7006ef9f88d261b3cccc2/diff",
+                "WorkDir": "/var/lib/docker/overlay2/edee4bb6d28e8028fd5ed5bcb4efd430d099cfd455e7006ef9f88d261b3cccc2/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:6f4d4102c049625bda5ffcd0e671ae65aea1d600735d3dc3585309f7d99cc083",
+                "sha256:10e9b9e72178b3e5fe8ff566a61eefb03ad585f5eae5cc0f2b08dbe3c874cecb",
+                "sha256:6f1e3682d66abd0d92095699687c4c9a03b87f68a65b5dd9b79a4c1e87309936",
+                "sha256:ff5700ec54186528cbae40f54c24b1a34fb7c01527beaa1232868c16e2353f52",
+                "sha256:d52f02c6501c9c4410568f0bf6ff30d30d8290f57794c308fe36ea78393afac2",
+                "sha256:e624a5370eca2b8266e74d179326e2a8767d361db14d13edd9fb57e408731784",
+                "sha256:1a73b54f556b477f0a8b939d13c504a3b4f4db71f7a09c63afbc10acb3de5849",
+                "sha256:8f2b2d741d53c8e25da6a3b40a1f45aba2612cf5c1ff06e642286358e756d9a8",
+                "sha256:9959f8de333696342eedd49db37331a9c3efa84899f1236226c18db2e856f2aa",
+                "sha256:eeda2c8159d73b314ad67e5f8ad6b497b810761cefc41858719b81cbc2ff0168",
+                "sha256:84fcafed05b78176cb54553fd43b1b8a36c138fc486e93ee93000643ead69751"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2024-05-30T10:06:24.209888707Z"
+        },
+        "Container": ""
+    }
+]

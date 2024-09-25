@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: p3
+      appgroup.diktyo.x-k8s.io.workload: p3
+  template:
+    metadata:
+      labels:
+        appgroup.diktyo.x-k8s.io: a1
+        app: p3
+        appgroup.diktyo.x-k8s.io.workload: p3
+    spec:
+      schedulerName: diktyo-scheduler
+      containers:
+      - name: p3-container
+        image: nginx
+        ports:
+        - containerPort: 80

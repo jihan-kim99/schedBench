@@ -1,6 +1,8 @@
 .venv/
 # Local .terraform directories
 **/.terraform/*
+**/scheduler-plugins/*
+**/helm-chart/*
 
 # .tfstate files
 *.tfstate
