@@ -81,18 +81,55 @@ module "eks" {
 
   eks_managed_node_group_defaults = {
     ami_type = "AL2_x86_64"
-
   }
 
   eks_managed_node_groups = {
     one = {
-      name = "node-group-1"
-
+      name           = "node-group-1"
       instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 1
+      desired_size   = 1
+      labels = {
+        "topology.kubernetes.io/zone"   = "z1"
+        "topology.kubernetes.io/region" = "r1"
+      }
+    }
 
-      min_size     = 3
-      max_size     = 3
-      desired_size = 3
+    two = {
+      name           = "node-group-2"
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 1
+      desired_size   = 1
+      labels = {
+        "topology.kubernetes.io/zone"   = "z2"
+        "topology.kubernetes.io/region" = "r1"
+      }
+    }
+
+    three = {
+      name           = "node-group-3"
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 1
+      desired_size   = 1
+      labels = {
+        "topology.kubernetes.io/zone"   = "z3"
+        "topology.kubernetes.io/region" = "r2"
+      }
+    }
+
+    four = {
+      name           = "node-group-4"
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 1
+      desired_size   = 1
+      labels = {
+        "topology.kubernetes.io/zone"   = "z4"
+        "topology.kubernetes.io/region" = "r2"
+      }
     }
   }
 }
