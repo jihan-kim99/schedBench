@@ -4,7 +4,7 @@ variable "ranks" {
 }
 
 resource "kubernetes_job" "master" {
-  depends_on = [kubernetes_service.ip_service, kubernetes_deployment.ip_server, kubernetes_manifest.pg1]
+  depends_on = [kubernetes_service.ip_service, kubernetes_deployment.ip_server]
   count      = length(var.ranks)
   metadata {
     name = "mp-test-${count.index}"
@@ -13,13 +13,22 @@ resource "kubernetes_job" "master" {
   spec {
     parallelism = 1
     completions = 1
+    selector {
+      match_labels = {
+        app                                 = "mp-test-${count.index}"
+        "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
+      }
+    }
     template {
       metadata {
         labels = {
-          app = "mp-test-${count.index}"
+          app                                 = "mp-test-${count.index}"
+          "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
+          "appgroup.diktyo.x-k8s.io"          = "a1"
         }
       }
       spec {
+        scheduler_name = "diktyo-scheduler"
         container {
           name  = "mp-test-${count.index}"
           image = "jinnkenny99/mp-test:latest"
