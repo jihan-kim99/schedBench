@@ -1,19 +1,24 @@
 output "cluster_endpoint" {
   description = "Endpoint for EKS control plane"
-  value       = module.eks.cluster_endpoint
+  value       = module.eks_primary.cluster_endpoint
 }
 
 output "cluster_security_group_id" {
   description = "Security group ids attached to the cluster control plane"
-  value       = module.eks.cluster_security_group_id
+  value       = module.eks_primary.cluster_security_group_id
 }
 
-output "region" {
+output "region_primary" {
   description = "AWS region"
-  value       = var.region
+  value       = var.region_primary
+}
+
+output "region_secondary" {
+  description = "AWS region"
+  value       = var.region_secondary
 }
 
 output "cluster_name" {
   description = "Kubernetes Cluster Name"
-  value       = module.eks.cluster_name
+  value       = module.eks_primary.cluster_name
 }
