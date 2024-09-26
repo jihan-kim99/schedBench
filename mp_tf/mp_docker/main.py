@@ -183,8 +183,8 @@ class DistResNet50(nn.Module):
 #                   Run RPC Processes                   #
 #########################################################
 
-num_batches = 3
-batch_size = 40
+num_batches = 10
+batch_size = 240
 image_w = 128
 image_h = 128
 

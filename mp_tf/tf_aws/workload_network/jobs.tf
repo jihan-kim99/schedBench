@@ -20,8 +20,28 @@ resource "kubernetes_job" "master" {
           "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
           "appgroup.diktyo.x-k8s.io"          = "a1"
         }
+
       }
+
       spec {
+        affinity {
+          # Prefer to schedule on different nodes
+          pod_anti_affinity {
+            preferred_during_scheduling_ignored_during_execution {
+              weight = 100
+              pod_affinity_term {
+                label_selector {
+                  match_expressions {
+                    key      = "app"
+                    operator = "In"
+                    values   = ["mp-test-${count.index}"]
+                  }
+                }
+                topology_key = "kubernetes.io/hostname"
+              }
+            }
+          }
+        }
         scheduler_name = "diktyo-scheduler"
         container {
           name  = "mp-test-${count.index}"
@@ -34,15 +54,16 @@ resource "kubernetes_job" "master" {
             name  = "WORLD_SIZE"
             value = length(var.ranks)
           }
-          # resources {
-          #   limits = {
-          #     cpu = "2"
-          #   }
-          #   requests = {
-          #     cpu = "1"
-          #   }
-          # }
+          resources {
+            limits = {
+              cpu = "1500m"
+            }
+            requests = {
+              cpu = "1000m"
+            }
+          }
         }
+        restart_policy = "Never"
       }
     }
   }

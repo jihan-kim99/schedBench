@@ -20,7 +20,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"        = "r2"
-                      "networkCost"        = 200
+                      "networkCost"        = 0
                       "bandwidthAllocated" = "1Gi"
                       "bandwidthCapacity"  = "10Gi"
                     }
@@ -31,7 +31,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"        = "r1"
-                      "networkCost"        = 200
+                      "networkCost"        = 0
                       "bandwidthAllocated" = "1Gi"
                       "bandwidthCapacity"  = "10Gi"
                     }
@@ -47,7 +47,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"       = "z2"
-                      "networkCost"       = 50
+                      "networkCost"       = 0
                       "bandwidthCapacity" = "1Gi"
                     }
                   ]
@@ -57,7 +57,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"       = "z1"
-                      "networkCost"       = 50
+                      "networkCost"       = 0
                       "bandwidthCapacity" = "1Gi"
                     }
                   ]
@@ -67,7 +67,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"       = "z4"
-                      "networkCost"       = 100
+                      "networkCost"       = 0
                       "bandwidthCapacity" = "1Gi"
                     }
                   ]
@@ -77,7 +77,7 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "costList" = [
                     {
                       "destination"       = "z3"
-                      "networkCost"       = 100
+                      "networkCost"       = 0
                       "bandwidthCapacity" = "1Gi"
                     }
                   ]
