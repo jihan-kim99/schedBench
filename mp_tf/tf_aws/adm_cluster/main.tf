@@ -3,8 +3,6 @@ provider "aws" {
 }
 
 module "cluster" {
-  source       = "weibeld/kubeadm/aws"
-  version      = "0.2.6"
+  source       = "./modules/cluster"
   cluster_name = "jolp"
-
 }
