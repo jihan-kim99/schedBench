@@ -27,8 +27,8 @@ resource "kubernetes_manifest" "appgroup_a1" {
                 "apiVersion" = "apps/v1"
                 "namespace"  = "default"
               }
-              "minBandwidth"   = "100Mi"
-              "maxNetworkCost" = 30
+              "minBandwidth"   = "0"
+              "maxNetworkCost" = 0
             }
           ]
         },
@@ -49,8 +49,8 @@ resource "kubernetes_manifest" "appgroup_a1" {
                 "apiVersion" = "apps/v1"
                 "namespace"  = "default"
               }
-              "minBandwidth"   = "250Mi"
-              "maxNetworkCost" = 20
+              "minBandwidth"   = "0"
+              "maxNetworkCost" = 0
             }
           ]
         },

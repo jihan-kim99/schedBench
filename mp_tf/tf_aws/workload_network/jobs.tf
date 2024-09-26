@@ -34,14 +34,14 @@ resource "kubernetes_job" "master" {
             name  = "WORLD_SIZE"
             value = length(var.ranks)
           }
-          resources {
-            limits = {
-              cpu = "2"
-            }
-            requests = {
-              cpu = "1"
-            }
-          }
+          # resources {
+          #   limits = {
+          #     cpu = "2"
+          #   }
+          #   requests = {
+          #     cpu = "1"
+          #   }
+          # }
         }
       }
     }

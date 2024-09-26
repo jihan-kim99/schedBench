@@ -184,15 +184,15 @@ class DistResNet50(nn.Module):
 #########################################################
 
 num_batches = 3
-batch_size = 120
+batch_size = 40
 image_w = 128
 image_h = 128
 
 def run_master(split_size):
     global tik
+    tik = time.time()
     # put the two model parts on worker1 and worker2 respectively
     logger.info("master is running")
-    tik = time.time()
     model = DistResNet50(split_size, ["worker1", "worker2"])
     loss_fn = nn.MSELoss()
     opt = DistributedOptimizer(
@@ -222,6 +222,8 @@ def run_master(split_size):
 
 
 def run_worker(rank, world_size, num_split):
+    global tik
+    tik = time.time()
     logger.info(f"worker {rank} is running")
     # Higher timeout is added to accommodate for kernel compilation time in case of ROCm.
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=256, rpc_timeout=300)
@@ -297,4 +299,6 @@ if __name__=="__main__":
 
     tok = time.time()
     logger.info('end')
-    logger.info(f'Time taken: {(tok - tik) / 60 } minutes and {tok - tik % 60 } seconds')
+    total_seconds = tok - tik
+    minutes, seconds = divmod(total_seconds, 60)
+    logger.info(f'Time taken: {minutes} minutes and {seconds} seconds')
