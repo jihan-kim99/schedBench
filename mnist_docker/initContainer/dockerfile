@@ -1,4 +1,0 @@
-FROM python:3.8-slim
-WORKDIR /app
-COPY main.py /app/
-CMD ["python", "main.py"]
