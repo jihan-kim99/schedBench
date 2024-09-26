@@ -3,7 +3,8 @@ resource "kubernetes_manifest" "appgroup_a1" {
     "apiVersion" = "appgroup.diktyo.x-k8s.io/v1alpha1"
     "kind"       = "AppGroup"
     "metadata" = {
-      "name" = "a1"
+      "name"      = "a1"
+      "namespace" = "default"
     }
     "spec" = {
       "numMembers"               = 3

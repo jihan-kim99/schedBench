@@ -13,12 +13,6 @@ resource "kubernetes_job" "master" {
   spec {
     parallelism = 1
     completions = 1
-    selector {
-      match_labels = {
-        app                                 = "mp-test-${count.index}"
-        "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
-      }
-    }
     template {
       metadata {
         labels = {
@@ -39,6 +33,14 @@ resource "kubernetes_job" "master" {
           env {
             name  = "WORLD_SIZE"
             value = length(var.ranks)
+          }
+          resources {
+            limits = {
+              cpu = "2"
+            }
+            requests = {
+              cpu = "1"
+            }
           }
         }
       }
