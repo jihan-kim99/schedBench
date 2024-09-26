@@ -4,7 +4,7 @@ variable "ranks" {
 }
 
 resource "kubernetes_job" "master" {
-  depends_on = [kubernetes_service.ip_service, kubernetes_deployment.ip_server, kubernetes_manifest.pg1]
+  depends_on = [kubernetes_service.ip_service, kubernetes_deployment.ip_server]
   count      = length(var.ranks)
   metadata {
     name = "mp-test-${count.index}"
