@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 num_classes = 1000
 
+tik = 0
+network_time = 0
+
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
@@ -182,6 +185,26 @@ class DistResNet50(nn.Module):
 #########################################################
 #                   Run RPC Processes                   #
 #########################################################
+class Timer:
+    def __init__(self):
+        self.start_time = None
+        self.total_time = 0
+
+    def start(self):
+        self.start_time = time.time()
+
+    def stop(self):
+        if self.start_time is not None:
+            self.total_time += time.time() - self.start_time
+            self.start_time = None
+
+    def reset(self):
+        self.total_time = 0
+        self.start_time = None
+
+network_timer = Timer()
+execution_timer = Timer()
+
 
 num_batches = 10
 batch_size = 240
@@ -189,11 +212,13 @@ image_w = 128
 image_h = 128
 
 def run_master(split_size):
-    global tik
-    tik = time.time()
-    # put the two model parts on worker1 and worker2 respectively
+    execution_timer.start()
     logger.info("master is running")
+    
+    network_timer.start()
     model = DistResNet50(split_size, ["worker1", "worker2"])
+    network_timer.stop()
+
     loss_fn = nn.MSELoss()
     opt = DistributedOptimizer(
         optim.SGD,
@@ -216,17 +241,23 @@ def run_master(split_size):
         # distributed backward pass to store gradients, which can later be
         # retrieved using the context_id by the distributed optimizer.
         with dist_autograd.context() as context_id:
+            network_timer.start()
             outputs = model(inputs)
-            dist_autograd.backward(context_id, [loss_fn(outputs, labels)])
-            opt.step(context_id)
+            network_timer.stop()
 
+            loss = loss_fn(outputs, labels)
+
+            network_timer.start()
+            dist_autograd.backward(context_id, [loss])
+            opt.step(context_id)
+            network_timer.stop()
 
 def run_worker(rank, world_size, num_split):
-    global tik
-    tik = time.time()
+    execution_timer.start()
     logger.info(f"worker {rank} is running")
     # Higher timeout is added to accommodate for kernel compilation time in case of ROCm.
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=256, rpc_timeout=300)
+
     if rank == 0:
         rpc.init_rpc(
             "master",
@@ -243,9 +274,14 @@ def run_worker(rank, world_size, num_split):
             rpc_backend_options=options
         )
         pass
-    # block until all rpcs finish
+        # block until all rpcs finish
     rpc.shutdown()
+    execution_timer.stop()
 
+    if rank == 0:
+        logger.info(f"Total execution time: {execution_timer.total_time:.2f} seconds")
+        logger.info(f"Total network communication time: {network_timer.total_time:.2f} seconds")
+        logger.info(f"Percentage of time spent on network communication: {(network_timer.total_time/execution_timer.total_time)*100:.2f}%")
 
 
 if __name__=="__main__":
@@ -296,9 +332,3 @@ if __name__=="__main__":
     logger.info('start')
     
     run_worker(rank, world_size, num_split=1)
-
-    tok = time.time()
-    logger.info('end')
-    total_seconds = tok - tik
-    minutes, seconds = divmod(total_seconds, 60)
-    logger.info(f'Time taken: {minutes} minutes and {seconds} seconds')

@@ -88,3 +88,12 @@ resource "helm_release" "prometheus" {
 
   depends_on = [kubernetes_namespace.monitoring]
 }
+
+resource "null_resource" "port_forward" {
+  provisioner "local-exec" {
+    command = <<-EOF
+      kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+      kubectl port-forward --namespace monitoring service/grafana 3000:80
+    EOF
+  }
+}
