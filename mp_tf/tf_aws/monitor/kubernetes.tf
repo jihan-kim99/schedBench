@@ -90,10 +90,7 @@ resource "helm_release" "prometheus" {
 }
 
 resource "null_resource" "port_forward" {
-  triggers = {
-    helm_release_grafana    = helm_release.grafana.metadata[0].name
-    helm_release_prometheus = helm_release.prometheus.metadata[0].name
-  }
+  depends_on = [helm_release.grafana, helm_release.prometheus]
   provisioner "local-exec" {
     command = <<-EOF
       kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
