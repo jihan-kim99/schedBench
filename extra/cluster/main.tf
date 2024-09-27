@@ -60,6 +60,20 @@ resource "aws_security_group" "ingress_internal" {
     cidr_blocks = var.pod_network_cidr_block != null ? [var.pod_network_cidr_block] : null
     description = "Allow incoming traffic from the Pods of the cluster"
   }
+  ingress {
+    protocol    = "udp"
+    from_port   = 8285
+    to_port     = 8285
+    self        = true
+    description = "Allow Flannel VXLAN"
+  }
+  ingress {
+    protocol    = "udp"
+    from_port   = 8472
+    to_port     = 8472
+    self        = true
+    description = "Allow Flannel VXLAN"
+  }
 }
 
 resource "aws_security_group" "ingress_k8s" {
@@ -146,7 +160,7 @@ resource "aws_instance" "master" {
   key_name      = aws_key_pair.main.key_name
 
   root_block_device {
-    volume_size = 20
+    volume_size = 40
   }
   vpc_security_group_ids = [
     aws_security_group.egress.id,
@@ -168,14 +182,16 @@ resource "aws_instance" "master" {
       master_public_ip  = aws_eip.master.public_ip,
       master_private_ip = null,
       worker_index      = null
+      flannel_version   = var.flannel_version
     }
   )
 }
 
 resource "aws_instance" "workers" {
-  count                       = var.num_workers
-  ami                         = data.aws_ami.ubuntu.image_id
-  instance_type               = var.worker_instance_type
+  count         = var.num_workers
+  ami           = data.aws_ami.ubuntu.image_id
+  instance_type = var.worker_instance_type
+
   subnet_id                   = var.subnet_id
   associate_public_ip_address = true
   key_name                    = aws_key_pair.main.key_name
@@ -185,15 +201,19 @@ resource "aws_instance" "workers" {
     aws_security_group.ingress_ssh.id
   ]
   root_block_device {
-    volume_size = 20
+    volume_size = var.volume_size
   }
-  tags = merge(local.tags, { "terraform-kubeadm:node" = "worker-${count.index}" })
+  tags = merge(local.tags, {
+    "terraform-kubeadm:node"        = "worker-${count.index}",
+    "topology.kubernetes.io/region" = var.worker_region[count.index]
+    "topology.kubernetes.io/zone"   = var.worker_zone[count.index]
+  })
   user_data = templatefile(
     "${path.module}/user-data.tftpl",
     {
       node              = "worker",
       token             = local.token,
-      cidr              = null,
+      cidr              = var.pod_network_cidr_block,
       master_public_ip  = null,
       master_private_ip = aws_instance.master.private_ip,
       worker_index      = count.index

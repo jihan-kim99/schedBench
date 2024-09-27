@@ -54,10 +54,29 @@ variable "allowed_k8s_cidr_blocks" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "worker_region" {
+  type        = list(string)
+  description = "AWS region in which to create the worker nodes."
+  default     = ["r1", "r1", "r2", "r2"]
+}
+
+variable "worker_zone" {
+  type        = list(string)
+  description = "AWS availability zone in which to create the worker nodes."
+  default     = ["z1", "z2", "z3", "z4"]
+}
+
+variable "flannel_version" {
+  type        = string
+  description = "Version of the Flannel CNI plugin to install on the cluster. The version must be a valid version string of the Flannel project on GitHub."
+  default     = "v0.25.6"
+
+}
+
 variable "pod_network_cidr_block" {
   type        = string
   description = "**This is an optional variable with a default value of null**. CIDR block for the Pod network of the cluster. If set, Kubernetes automatically allocates Pod subnet IP address ranges to the nodes (i.e. sets the \".spec.podCIDR\" field of the node objects). If null, the cluster is created without an explicitly determined Pod network IP address range, and the nodes are not allocated any Pod subnet IP address ranges (i.e. the \".spec.podCIDR\" field of the nodes is not set)."
-  default     = null
+  default     = "10.244.0.0/16"
 }
 
 variable "master_instance_type" {
@@ -76,6 +95,12 @@ variable "num_workers" {
   type        = number
   description = "Number of worker nodes."
   default     = 2
+}
+
+variable "volume_size" {
+  type        = number
+  description = "Size of the EBS volume in GiB to attach to the EC2 instances. The volume is used for the Kubernetes data directory (/var/lib/kubelet) and the Docker data directory (/var/lib/docker)."
+  default     = 60
 }
 
 variable "tags" {

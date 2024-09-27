@@ -34,8 +34,8 @@ sudo systemctl restart containerd
 # Install Kubernetes tools
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
 sudo apt-get install -y apt-transport-https ca-certificates curl
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.26/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.26/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 sudo apt-get update
 sudo apt-get install -y kubeadm kubelet kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
@@ -59,6 +59,7 @@ sudo kubeadm init \
 # Prepare kubeconfig file for downloading
 sudo cp /etc/kubernetes/admin.conf /home/ubuntu
 sudo chown ubuntu:ubuntu /home/ubuntu/admin.conf 
+
 kubectl --kubeconfig /home/ubuntu/admin.conf config set-cluster kubernetes --server "https://${master_public_ip}:6443"
 %{~ endif ~}
 
