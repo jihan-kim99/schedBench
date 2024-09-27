@@ -13,33 +13,6 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
           "name" = "UserDefined"
           "topologyList" = [
             {
-              "topologyKey" = "topology.kubernetes.io/region"
-              "originList" = [
-                {
-                  "origin" = "r1"
-                  "costList" = [
-                    {
-                      "destination"        = "r2"
-                      "networkCost"        = 0
-                      "bandwidthAllocated" = "1Gi"
-                      "bandwidthCapacity"  = "10Gi"
-                    }
-                  ]
-                },
-                {
-                  "origin" = "r2"
-                  "costList" = [
-                    {
-                      "destination"        = "r1"
-                      "networkCost"        = 0
-                      "bandwidthAllocated" = "1Gi"
-                      "bandwidthCapacity"  = "10Gi"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
               "topologyKey" = "topology.kubernetes.io/zone"
               "originList" = [
                 {
@@ -48,7 +21,17 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                     {
                       "destination"       = "z2"
                       "networkCost"       = 0
-                      "bandwidthCapacity" = "1Gi"
+                      "bandwidthCapacity" = "50Mi"
+                    },
+                    {
+                      "destination"       = "z3"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "20Mi"
+                    },
+                    {
+                      "destination"       = "z4"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "50Mi"
                     }
                   ]
                 },
@@ -58,7 +41,17 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                     {
                       "destination"       = "z1"
                       "networkCost"       = 0
-                      "bandwidthCapacity" = "1Gi"
+                      "bandwidthCapacity" = "50Mi"
+                    },
+                    {
+                      "destination"       = "z3"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "20Mi"
+                    },
+                    {
+                      "destination"       = "z4"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "50Mi"
                     }
                   ]
                 },
@@ -66,9 +59,19 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "origin" = "z3"
                   "costList" = [
                     {
+                      "destination"       = "z1"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "20Mi"
+                    },
+                    {
+                      "destination"       = "z2"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "20Mi"
+                    },
+                    {
                       "destination"       = "z4"
                       "networkCost"       = 0
-                      "bandwidthCapacity" = "1Gi"
+                      "bandwidthCapacity" = "20Mi"
                     }
                   ]
                 },
@@ -76,9 +79,19 @@ resource "kubernetes_manifest" "network_topology_nt_cluster" {
                   "origin" = "z4"
                   "costList" = [
                     {
+                      "destination"       = "z1"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "50Mi"
+                    },
+                    {
+                      "destination"       = "z2"
+                      "networkCost"       = 0
+                      "bandwidthCapacity" = "50Mi"
+                    },
+                    {
                       "destination"       = "z3"
                       "networkCost"       = 0
-                      "bandwidthCapacity" = "1Gi"
+                      "bandwidthCapacity" = "20Mi"
                     }
                   ]
                 }

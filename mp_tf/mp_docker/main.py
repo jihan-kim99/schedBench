@@ -206,8 +206,8 @@ network_timer = Timer()
 execution_timer = Timer()
 
 
-num_batches = 10
-batch_size = 240
+num_batches = 2
+batch_size = 120
 image_w = 128
 image_h = 128
 
@@ -215,9 +215,7 @@ def run_master(split_size):
     execution_timer.start()
     logger.info("master is running")
     
-    network_timer.start()
     model = DistResNet50(split_size, ["worker1", "worker2"])
-    network_timer.stop()
 
     loss_fn = nn.MSELoss()
     opt = DistributedOptimizer(
@@ -247,10 +245,9 @@ def run_master(split_size):
 
             loss = loss_fn(outputs, labels)
 
-            network_timer.start()
             dist_autograd.backward(context_id, [loss])
             opt.step(context_id)
-            network_timer.stop()
+
 
 def run_worker(rank, world_size, num_split):
     execution_timer.start()

@@ -10,6 +10,11 @@ resource "kubernetes_job" "master" {
     name = "mp-test-${count.index}"
   }
 
+  wait_for_completion = true
+  timeouts {
+    create = "10m"
+  }
+
   spec {
     parallelism = 1
     completions = 1
@@ -18,6 +23,7 @@ resource "kubernetes_job" "master" {
         labels = {
           app                                 = "mp-test-${count.index}"
           "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
+          "appgroup.diktyo.x-k8s.io"          = "a1"
         }
       }
       spec {
@@ -35,13 +41,14 @@ resource "kubernetes_job" "master" {
           }
           resources {
             limits = {
-              cpu = "2"
+              cpu = "1500m"
             }
             requests = {
-              cpu = "1"
+              cpu = "1000m"
             }
           }
         }
+        restart_policy = "Never"
       }
     }
   }

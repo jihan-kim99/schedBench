@@ -27,7 +27,7 @@ resource "kubernetes_manifest" "appgroup_a1" {
                 "apiVersion" = "apps/v1"
                 "namespace"  = "default"
               }
-              "minBandwidth"   = "0"
+              "minBandwidth"   = "30Mi"
               "maxNetworkCost" = 0
             }
           ]
@@ -49,7 +49,7 @@ resource "kubernetes_manifest" "appgroup_a1" {
                 "apiVersion" = "apps/v1"
                 "namespace"  = "default"
               }
-              "minBandwidth"   = "0"
+              "minBandwidth"   = "30Mi"
               "maxNetworkCost" = 0
             }
           ]
@@ -62,6 +62,19 @@ resource "kubernetes_manifest" "appgroup_a1" {
             "apiVersion" = "apps/v1"
             "namespace"  = "default"
           }
+          "dependencies" = [
+            {
+              "workload" = {
+                "kind"       = "Deployment"
+                "name"       = "mp-test-0"
+                "selector"   = "mp-test-0"
+                "apiVersion" = "apps/v1"
+                "namespace"  = "default"
+              }
+              "minBandwidth"   = "30Mi"
+              "maxNetworkCost" = 0
+            }
+          ]
         }
       ]
     }

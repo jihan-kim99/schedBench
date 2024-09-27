@@ -8,7 +8,7 @@ module "cluster" {
 
   master_instance_type = "t3.medium"
   num_workers          = 4
-  worker_instance_type = "t3.large"
+  worker_instance_type = "t3.xlarge"
   volume_size          = 60
 }
 

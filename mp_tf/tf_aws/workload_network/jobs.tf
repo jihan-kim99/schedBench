@@ -10,6 +10,10 @@ resource "kubernetes_job" "master" {
     name = "mp-test-${count.index}"
   }
 
+  wait_for_completion = true
+  timeouts {
+    create = "10m"
+  }
   spec {
     parallelism = 1
     completions = 1
@@ -20,28 +24,8 @@ resource "kubernetes_job" "master" {
           "appgroup.diktyo.x-k8s.io.workload" = "mp-test-${count.index}"
           "appgroup.diktyo.x-k8s.io"          = "a1"
         }
-
       }
-
       spec {
-        affinity {
-          # Prefer to schedule on different nodes
-          pod_anti_affinity {
-            preferred_during_scheduling_ignored_during_execution {
-              weight = 100
-              pod_affinity_term {
-                label_selector {
-                  match_expressions {
-                    key      = "app"
-                    operator = "In"
-                    values   = ["mp-test-${count.index}"]
-                  }
-                }
-                topology_key = "kubernetes.io/hostname"
-              }
-            }
-          }
-        }
         scheduler_name = "diktyo-scheduler"
         container {
           name  = "mp-test-${count.index}"
