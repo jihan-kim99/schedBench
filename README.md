@@ -1,3 +1,5 @@
-# Build scheduler in 2 weeks
+# Make the Scheduler!!
+- [x] simplest scheduler
+- [ ] Implement simple logic
+- [ ] .....
 
- -[ ] Make the first scheduler
