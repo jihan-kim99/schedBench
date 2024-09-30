@@ -1,0 +1,20 @@
+apiVersion: batch.ddl.com/v1
+kind: DistributedJob
+metadata:
+  name: distributedjob1
+spec:
+  workloads:
+    - resource: top-layer
+      namespace: default
+      dependencies:
+        - resource: mid-layer
+          minBandwidth: 10
+          maxLatency: 5
+    - resource: mid-layer
+      namespace: default
+      dependencies:
+        - resource: bottom-layer
+          minBandwidth: 10
+          maxLatency: 5
+    - resource: bottom-layer
+      namespace: default

@@ -1,0 +1,9 @@
+apiVersion: batch.ddl.com/v1
+kind: DistributedJob
+metadata:
+  labels:
+    app.kubernetes.io/name: kubebuilder
+    app.kubernetes.io/managed-by: kustomize
+  name: distributedjob-sample
+spec:
+  # TODO(user): Add fields here
