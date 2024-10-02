@@ -1,5 +1,7 @@
 # Make the Scheduler!!
 - [x] simplest scheduler
-- [ ] Implement simple logic
-- [ ] .....
+- [x] controller implementation
+- [ ] daemonset for network metric
+- [ ] scheduler plugins implementation
+- [ ] benchmark
 
