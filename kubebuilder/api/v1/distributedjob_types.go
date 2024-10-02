@@ -46,7 +46,6 @@ type DistributedJobSpec struct {
 // Workload defines a single workload in the DistributedJob
 type Workload struct {
 	Resource     string       `json:"resource"`
-	Namespace    string       `json:"namespace,omitempty"`
 	Dependencies []Dependency `json:"dependencies,omitempty"`
 }
 
@@ -65,11 +64,16 @@ type DistributedJobStatus struct {
 
 // WorkloadStatus defines the status of a single workload in the DistributedJob
 type WorkloadStatus struct {
-	Resource string `json:"resource"`          // 워크로드 리소스 이름
-	NodeName string `json:"nodeName"`          // 스케줄링된 노드 이름
-	Order    int    `json:"order"`             // 스케줄링된 순서
-	Phase    string `json:"phase,omitempty"`   // 현재 상태 (예: Pending, Running, Succeeded, Failed)
-	PodName  string `json:"podName,omitempty"` // 스케줄링된 리소스의 Pod 이름
+	Resource       string          `json:"resource"`                 // 워크로드 리소스 이름
+	Order          int             `json:"order"`                    // 스케줄링되는 순서
+	Phase          string          `json:"phase,omitempty"`          // 현재 상태 (예: Not Pending, Running, Succeeded, Failed, Unknown)
+	SchedulingInfo []PodScheduling `json:"schedulingInfo,omitempty"` // 스케줄링된 리소스의 Pod 이름
+}
+
+// PodScheduling defines current scheuling status of the Resource
+type PodScheduling struct {
+	PodName  string `json:"podName,omitempty"`
+	NodeName string `json:"nodeName,omitempty"`
 }
 
 // +kubebuilder:object:root=true

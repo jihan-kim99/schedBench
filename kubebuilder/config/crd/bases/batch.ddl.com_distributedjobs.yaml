@@ -57,8 +57,6 @@ spec:
                         - resource
                         type: object
                       type: array
-                    namespace:
-                      type: string
                     resource:
                       type: string
                   required:
@@ -75,18 +73,24 @@ spec:
                   description: WorkloadStatus defines the status of a single workload
                     in the DistributedJob
                   properties:
-                    nodeName:
-                      type: string
                     order:
                       type: integer
                     phase:
                       type: string
-                    podName:
-                      type: string
                     resource:
                       type: string
+                    schedulingInfo:
+                      items:
+                        description: PodScheduling defines current scheuling status
+                          of the Resource
+                        properties:
+                          nodeName:
+                            type: string
+                          podName:
+                            type: string
+                        type: object
+                      type: array
                   required:
-                  - nodeName
                   - order
                   - resource
                   type: object
