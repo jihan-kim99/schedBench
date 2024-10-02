@@ -189,7 +189,6 @@ module "eks_secondary" {
     ami_type = "AL2_x86_64"
   }
 
-<<<<<<< Updated upstream:extra/cluster_dep/kubernetes.tf
   eks_managed_node_groups = {
     one = {
       name           = "node-group-1"
@@ -237,23 +236,6 @@ module "eks_secondary" {
         "topology.kubernetes.io/zone"   = "z4"
         "topology.kubernetes.io/region" = "r2"
       }
-=======
-  cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
-
-  # Node group in the secondary region
-  eks_managed_node_groups = {
-    secondary = {
-      name           = "secondary-node-group"
-      role_arn       = aws_iam_role.eks_worker_role.arn
-      instance_types = ["t3.small"]
-      min_size       = 3
-      max_size       = 3
-      desired_size   = 3
-    }
-    labels = {
-      "topology.kubernetes.io/region" = var.region_secondary
-      "topology.kubernetes.io/zone"   = join("_", module.vpc_secondary.azs)
->>>>>>> Stashed changes:mp_tf/tf_aws/cluster/kubernetes.tf
     }
   }
   tags = {

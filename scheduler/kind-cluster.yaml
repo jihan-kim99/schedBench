@@ -5,17 +5,17 @@ networking:
   apiServerPort: 6443
 nodes:
   - role: control-plane
-    image: kindest/node:v1.21.1
+    image: kindest/node:v1.29.7
     extraPortMappings:
       - containerPort: 30000
         hostPort: 80
         listenAddress: "0.0.0.0"
         protocol: TCP
   - role: worker
-    image: kindest/node:v1.21.1
+    image: kindest/node:v1.29.7
   - role: worker
-    image: kindest/node:v1.21.1
+    image: kindest/node:v1.29.7
   - role: worker
-    image: kindest/node:v1.21.1
+    image: kindest/node:v1.29.7
   - role: worker
-    image: kindest/node:v1.21.1
+    image: kindest/node:v1.29.7
