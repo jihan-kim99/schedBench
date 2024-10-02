@@ -5,16 +5,35 @@ metadata:
 spec:
   workloads:
     - resource: top-layer
-      namespace: default
       dependencies:
         - resource: mid-layer
           minBandwidth: 10
           maxLatency: 5
     - resource: mid-layer
-      namespace: default
       dependencies:
         - resource: bottom-layer
           minBandwidth: 10
           maxLatency: 5
     - resource: bottom-layer
-      namespace: default
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy1
+  labels:
+    app: deploy1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      resource: mid-layer
+  template:
+    metadata:
+      labels:
+        resource: mid-layer
+    spec:
+      containers:
+      - name: mid-layer-container
+        image: busybox
+        command: ["sh", "-c", "echo Hello, Kubernetes! && sleep 3600"]

@@ -21,11 +21,18 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	batchv1 "custom-scheduler/api/v1"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // DistributedJobReconciler reconciles a DistributedJob object
@@ -49,6 +56,7 @@ type DistributedJobReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("Reconcile running")
 
 	// TODO(user): your logic here
 	var distributedJob batchv1.DistributedJob
@@ -57,34 +65,59 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// topological sort and set Resource and Order value in WorkloadStatus
 	sortedWorkloads, err := topologicalSort(distributedJob.Spec.Workloads)
 	if err != nil {
 		logger.Error(err, "Failed to perform topological sort")
 		return ctrl.Result{}, err
 	}
+	distributedJob.Status.WorkloadStatuses = sortedWorkloads
 
-	if len(distributedJob.Status.WorkloadStatuses) == 0 {
-		for _, workload := range sortedWorkloads {
-			distributedJob.Status.WorkloadStatuses = append(distributedJob.Status.WorkloadStatuses, batchv1.WorkloadStatus{
-				Resource: workload.Resource,
-				Order:    0, // Will be updated
-				Phase:    "Not scheduled",
-				PodName:  "",
-				NodeName: "",
-			})
-		}
+	statusMap := map[string]int{
+		"Running":       4,
+		"Pending":       3,
+		"Failed":        2,
+		"Succeeded":     1,
+		"Unknown":       0,
+		"Not scheduled": -1,
 	}
 
-	for order, sortedWorkload := range sortedWorkloads {
-		for i, status := range distributedJob.Status.WorkloadStatuses {
-			if status.Resource == sortedWorkload.Resource {
-				distributedJob.Status.WorkloadStatuses[i].Order = order + 1
-				distributedJob.Status.WorkloadStatuses[i].Resource = ""
-				distributedJob.Status.WorkloadStatuses[i].NodeName = ""
-				distributedJob.Status.WorkloadStatuses[i].Phase = "Not scheduled"
-				distributedJob.Status.WorkloadStatuses[i].PodName = "p1"
+	// Pod 생성에 대한 Watcher 필요
+
+	// Iterating workloads and check for pod statue
+	for _, workload := range distributedJob.Spec.Workloads {
+		// Get pods which have same resource label in same namespace CRD
+		var podList corev1.PodList
+		if err := r.List(ctx, &podList, client.MatchingLabels{"resource": workload.Resource}, client.InNamespace(distributedJob.Namespace)); err != nil {
+			logger.Error(err, "Failed to list pods for workload", "workload", workload.Resource)
+			continue
+		}
+		if len(podList.Items) == 0 {
+			logger.Info("No pods assigned for workload", "workload", workload.Resource)
+			continue
+		}
+
+		// Get according WorkloadStatus (idx)
+		var idx int = -1
+		for i, _ := range distributedJob.Status.WorkloadStatuses {
+			if distributedJob.Status.WorkloadStatuses[i].Resource == workload.Resource {
+				idx = i
 				break
 			}
+		}
+
+		// Assign Pods for WorkloadStatus
+		for _, pod := range podList.Items {
+			podScheduling := batchv1.PodScheduling{
+				PodName:  pod.Name,
+				NodeName: pod.Spec.NodeName,
+			}
+
+			distributedJob.Status.WorkloadStatuses[idx].SchedulingInfo = append(distributedJob.Status.WorkloadStatuses[idx].SchedulingInfo, podScheduling)
+			if statusMap[distributedJob.Status.WorkloadStatuses[idx].Phase] < statusMap[getPodPhase(pod.Status.Phase)] {
+				distributedJob.Status.WorkloadStatuses[idx].Phase = getPodPhase(pod.Status.Phase)
+			}
+			logger.Info("New pod assigned", "podName", pod.Name)
 		}
 	}
 
@@ -95,12 +128,14 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func topologicalSort(workloads []batchv1.Workload) ([]batchv1.Workload, error) {
+func topologicalSort(workloads []batchv1.Workload) ([]batchv1.WorkloadStatus, error) {
 	inDegree := make(map[string]int)   // 각 Workload의 in-degree 카운트
 	graph := make(map[string][]string) // 각 Workload 간의 의존 관계 그래프
 	queue := []string{}
-	result := []batchv1.Workload{}
+	result := []batchv1.WorkloadStatus{}
+	order := 1
 
+	// Initailization
 	for _, workload := range workloads {
 		graph[workload.Resource] = nil
 		inDegree[workload.Resource] = 0
@@ -124,7 +159,13 @@ func topologicalSort(workloads []batchv1.Workload) ([]batchv1.Workload, error) {
 		queue = queue[1:]
 		for _, workload := range workloads {
 			if workload.Resource == curr {
-				result = append(result, workload)
+				result = append(result, batchv1.WorkloadStatus{
+					Resource:       workload.Resource,
+					Order:          order,
+					Phase:          "Not scheduled",
+					SchedulingInfo: []batchv1.PodScheduling{},
+				})
+				order++
 				break
 			}
 		}
@@ -142,9 +183,53 @@ func topologicalSort(workloads []batchv1.Workload) ([]batchv1.Workload, error) {
 	return result, nil
 }
 
+// Helper function to map PodPhase to string phase
+func getPodPhase(podPhase corev1.PodPhase) string {
+	switch podPhase {
+	case corev1.PodPending:
+		return "Pending"
+	case corev1.PodRunning:
+		return "Running"
+	case corev1.PodSucceeded:
+		return "Succeeded"
+	case corev1.PodFailed:
+		return "Failed"
+	default:
+		return "Unknown"
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *DistributedJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batchv1.DistributedJob{}).
+		Watches(
+			&corev1.Pod{}, // Pod 리소스 감시
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForPod),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *DistributedJobReconciler) findObjectsForPod(ctx context.Context, pod client.Object) []reconcile.Request {
+	attachedDistributedJobs := &batchv1.DistributedJobList{}
+	listOps := &client.ListOptions{
+		Namespace: pod.GetNamespace(),
+	}
+
+	err := r.List(ctx, attachedDistributedJobs, listOps)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(attachedDistributedJobs.Items))
+	for i, item := range attachedDistributedJobs.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
