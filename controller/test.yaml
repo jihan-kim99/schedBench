@@ -1,0 +1,39 @@
+apiVersion: batch.ddl.com/v1
+kind: DistributedJob
+metadata:
+  name: distributedjob1
+spec:
+  workloads:
+    - resource: top-layer
+      dependencies:
+        - resource: mid-layer
+          minBandwidth: 10
+          maxLatency: 5
+    - resource: mid-layer
+      dependencies:
+        - resource: bottom-layer
+          minBandwidth: 10
+          maxLatency: 5
+    - resource: bottom-layer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy1
+  labels:
+    app: deploy1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      resource: mid-layer
+  template:
+    metadata:
+      labels:
+        resource: mid-layer
+    spec:
+      containers:
+      - name: mid-layer-container
+        image: busybox
+        command: ["sh", "-c", "echo Hello, Kubernetes! && sleep 3600"]
