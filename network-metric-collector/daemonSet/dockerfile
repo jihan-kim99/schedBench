@@ -1,0 +1,31 @@
+# Use a base Python image
+FROM python:3.9-slim
+
+# Install necessary packages including iperf3
+RUN apt-get update && apt-get install -y \
+    iputils-ping \
+    curl \
+    iperf3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir flask kubernetes requests
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the DaemonSet application code into the container
+COPY main.py /app
+
+# Expose port 8080 for metrics API
+EXPOSE 8080
+
+# Expose the default iperf3 server port
+EXPOSE 5201
+
+# Create a startup script
+RUN echo '#!/bin/bash\niperf3 -s -D\npython main.py' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Set the command to run the startup script
+CMD ["/app/start.sh"]

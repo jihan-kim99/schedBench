@@ -1,0 +1,17 @@
+# Use a base Python image
+FROM python:3.9-slim
+
+# Install dependencies
+RUN pip install --no-cache-dir flask kubernetes requests
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the master application code into the container
+COPY main.py /app
+
+# Expose port 8080 for communication with DaemonSet pods
+EXPOSE 8080
+
+# Set the command to run the master application
+CMD ["python", "main.py"]
