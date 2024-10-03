@@ -157,9 +157,6 @@ def register():
     if len(registered_nodes) == expected_node_count:
         logging.info(f"All expected nodes ({expected_node_count}) have registered. Starting metric collection.")
         # Start polling for metrics every 1 minute in a separate thread
-        thread = threading.Thread(target=poll_metrics_periodically)
-        thread.start()
-    
     return jsonify({"status": "registered", "node": node_name}), 200
 
 def wait_for_nodes():
@@ -170,6 +167,8 @@ def wait_for_nodes():
         with lock:
             if len(registered_nodes) == expected_node_count:
                 logging.info("All expected nodes have registered.")
+                thread = threading.Thread(target=poll_metrics_periodically)
+                thread.start()
                 return
         time.sleep(5)  # Check every 5 seconds
 
