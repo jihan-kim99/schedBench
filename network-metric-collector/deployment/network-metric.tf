@@ -113,8 +113,9 @@ resource "kubernetes_deployment" "master" {
         service_account_name = kubernetes_service_account.master_sa.metadata[0].name
 
         container {
-          image = "jinnkenny99/network-metric-collector-master"
-          name  = "network-metrics-master"
+          image             = "jinnkenny99/network-metric-collector-master"
+          name              = "network-metrics-master"
+          image_pull_policy = "Always"
 
           port {
             container_port = 8080
@@ -222,8 +223,9 @@ resource "kubernetes_daemonset" "network_metrics" {
         service_account_name = kubernetes_service_account.daemonset_sa.metadata[0].name
 
         container {
-          image = "jinnkenny99/network-metric-collector-daemonset"
-          name  = "network-metrics-collector"
+          image             = "jinnkenny99/network-metric-collector-daemonset"
+          name              = "network-metrics-collector"
+          image_pull_policy = "Always"
 
           port {
             container_port = 8080

@@ -2,7 +2,7 @@
 FROM python:3.9-slim
 
 # Install dependencies
-RUN pip install --no-cache-dir flask kubernetes requests
+RUN pip install --no-cache-dir flask[async] kubernetes requests aiohttp hypercorn
 
 # Set the working directory
 WORKDIR /app
