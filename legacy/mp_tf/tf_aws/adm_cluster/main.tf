@@ -25,17 +25,6 @@ resource "null_resource" "post_creation" {
       # apply calico
       # kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
-      echo "Installing the scheduler-plugins helm chart..."
-      # Check if the helm-chart directory exists
-      if [ ! -d "helm-chart" ]; then
-        echo "Cloning the helm-chart repository..."
-        git clone https://github.com/diktyo-io/helm-chart.git
-      else
-        echo "helm-chart directory already exists. Skipping clone."
-      fi
-
-      helm install scheduler-plugins ./helm-chart/charts/as-a-second-scheduler --create-namespace --namespace scheduler-plugins
-
       # #prom-graf install
       # curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
       # helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
