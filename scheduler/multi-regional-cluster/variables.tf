@@ -1,9 +1,4 @@
 # Change the default values of the variables in this file to customize the cluster.
-variable "cluster_name" {
-  type        = string
-  description = "Name of the Kubernetes cluster to create. This name will be used in the names and tags of the created AWS resources and for the local kubeconfig file."
-  default     = "jolp"
-}
 
 variable "master_instance_type" {
   type        = string
@@ -18,12 +13,12 @@ variable "worker_instance_type" {
 variable "num_workers" {
   type        = number
   description = "Number of worker nodes."
-  default     = 2
+  default     = 6
 }
 variable "volume_size" {
   type        = number
   description = "Size of the EBS volume in GiB to attach to the EC2 instances. The volume is used for the Kubernetes data directory (/var/lib/kubelet) and the Docker data directory (/var/lib/docker)."
-  default     = 60
+  default     = 30
 }
 variable "primary_region" {
   type        = string
@@ -34,10 +29,18 @@ variable "primary_region" {
 variable "secondary_region" {
   type        = string
   description = "AWS region for the secondary VPC"
-  default     = "us-east-1"
+  default     = "ap-northeast-2"
 }
 
+variable "cluster_name" {
+  type        = string
+  description = "Name of the Kubernetes cluster to create. This name will be used in the names and tags of the created AWS resources and for the local kubeconfig file."
+  default     = "jolp"
+}
+
+# --------------------------------------------------------------
 # No need to change these variables
+# --------------------------------------------------------------
 variable "primary_vpc_cidr" {
   type        = string
   description = "CIDR block for the primary VPC"

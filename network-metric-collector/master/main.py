@@ -96,21 +96,18 @@ async def poll_metrics_periodically():
         logging.info("Polling network metrics from all registered pods...")
         all_metrics = {}
         pod_ips = list(registered_nodes.values())
-        tasks = []
+        
         for node_name, pod_ip in registered_nodes.items():
             target_ips = [ip for ip in pod_ips if ip != pod_ip]
-            tasks.append(collect_metrics_from_pod(pod_ip, target_ips))
-        
-        results = await asyncio.gather(*tasks)
-        
-        for node_name, pod_metrics in zip(registered_nodes.keys(), results):
+            pod_metrics = await collect_metrics_from_pod(pod_ip, target_ips)
+            
             if pod_metrics:
                 all_metrics[node_name] = pod_metrics
         
         # Process the collected metrics
         process_metrics(all_metrics)
         update_crd()
-        await asyncio.sleep(60) 
+        await asyncio.sleep(60)
 
 def process_metrics(all_metrics):
     """Process the collected metrics from all pods."""

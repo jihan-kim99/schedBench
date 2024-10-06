@@ -80,7 +80,7 @@ async def collect_network_metrics(target_ips):
             tasks.append(run_iperf3_bandwidth(ip))
             tasks.append(run_ping_latency(ip))
     results = await asyncio.gather(*tasks)
-    
+    logging.info(f"Collected metrics: {results}")
     metrics = {}
     for i in range(0, len(results), 2):
         ip = target_ips[i // 2]
