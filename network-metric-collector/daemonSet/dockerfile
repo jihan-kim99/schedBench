@@ -9,8 +9,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install --no-cache-dir flask kubernetes requests
-
+RUN pip install --no-cache-dir flask[async] kubernetes requests aiohttp hypercorn
 # Set the working directory
 WORKDIR /app
 

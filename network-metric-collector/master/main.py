@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 from kubernetes import client, config
-import time
-import requests
 import threading
 import logging
+import aiohttp
+import asyncio
+from hypercorn.config import Config
+from hypercorn.asyncio import serve
 
 app = Flask(__name__)
 
@@ -26,21 +28,6 @@ def get_non_control_plane_node_count():
     """Get the count of non-control plane nodes in the cluster."""
     nodes = v1.list_node().items
     return sum(1 for node in nodes if 'node-role.kubernetes.io/control-plane' not in node.metadata.labels)
-
-def collect_metrics_from_pod(pod_ip, target_ips):
-    """Collect metrics from a DaemonSet pod using POST."""
-    try:
-        response = requests.post(f"http://{pod_ip}:8080/collect_metrics", 
-                                 json={"target_ips": target_ips})
-        if response.status_code == 200:
-            logging.info(f"Successfully collected metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}")
-            return response.json()
-        else:
-            logging.warning(f"Failed to collect metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}. Status code: {response.status_code}")
-            return None
-    except Exception as e:
-        logging.error(f"Error collecting metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}: {e}")
-        return None
 
 def update_crd():
     """Update or create the CRD with the collected metrics."""
@@ -88,21 +75,42 @@ def update_crd():
         else:
             logging.error(f"Failed to update or create CRD: {e}")
 
-def poll_metrics_periodically():
+async def collect_metrics_from_pod(pod_ip, target_ips):
+    """Collect metrics from a DaemonSet pod using POST."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"http://{pod_ip}:8080/collect_metrics", 
+                                    json={"target_ips": target_ips}) as response:
+                if response.status == 200:
+                    logging.info(f"Successfully collected metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}")
+                    return await response.json()
+                else:
+                    logging.warning(f"Failed to collect metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}. Status code: {response.status}")
+                    return None
+    except Exception as e:
+        logging.error(f"Error collecting metrics from pod at {ip_to_node_map.get(pod_ip, pod_ip)}: {e}")
+        return None
+
+async def poll_metrics_periodically():
     while True:
         logging.info("Polling network metrics from all registered pods...")
         all_metrics = {}
         pod_ips = list(registered_nodes.values())
+        tasks = []
         for node_name, pod_ip in registered_nodes.items():
             target_ips = [ip for ip in pod_ips if ip != pod_ip]
-            pod_metrics = collect_metrics_from_pod(pod_ip, target_ips)
+            tasks.append(collect_metrics_from_pod(pod_ip, target_ips))
+        
+        results = await asyncio.gather(*tasks)
+        
+        for node_name, pod_metrics in zip(registered_nodes.keys(), results):
             if pod_metrics:
                 all_metrics[node_name] = pod_metrics
         
         # Process the collected metrics
         process_metrics(all_metrics)
         update_crd()
-        time.sleep(60)  # Poll every 1 minute
+        await asyncio.sleep(60) 
 
 def process_metrics(all_metrics):
     """Process the collected metrics from all pods."""
@@ -137,7 +145,7 @@ def process_metrics(all_metrics):
     logging.info(f"Processed network latency metrics: {network_latency}")
 
 @app.route('/register', methods=['POST'])
-def register():
+async def register():
     """Register a DaemonSet pod with the master."""
     node_name = request.json.get('node_name')
     pod_ip = request.json.get('pod_ip')
@@ -156,10 +164,11 @@ def register():
     expected_node_count = get_non_control_plane_node_count()
     if len(registered_nodes) == expected_node_count:
         logging.info(f"All expected nodes ({expected_node_count}) have registered. Starting metric collection.")
-        # Start polling for metrics every 1 minute in a separate thread
+        # Start polling for metrics every 1 minute in a separate task
+        asyncio.create_task(poll_metrics_periodically())
     return jsonify({"status": "registered", "node": node_name}), 200
 
-def wait_for_nodes():
+async def wait_for_nodes():
     """Wait for all non-control plane nodes to register."""
     expected_node_count = get_non_control_plane_node_count()
     logging.info(f"Waiting for {expected_node_count} non-control plane nodes to register...")
@@ -167,15 +176,16 @@ def wait_for_nodes():
         with lock:
             if len(registered_nodes) == expected_node_count:
                 logging.info("All expected nodes have registered.")
-                thread = threading.Thread(target=poll_metrics_periodically)
-                thread.start()
+                asyncio.create_task(poll_metrics_periodically())
                 return
-        time.sleep(5)  # Check every 5 seconds
+        await asyncio.sleep(5)  # Check every 5 seconds
+
+async def main():
+    config = Config()
+    config.bind = ["0.0.0.0:8080"]
+    asyncio.create_task(wait_for_nodes())
+    await serve(app, config)
 
 if __name__ == "__main__":
-    # Start waiting for nodes in a separate thread
-    threading.Thread(target=wait_for_nodes).start()
-
-    # Start the Flask server to listen for registrations
     logging.info("Starting the master server for collecting network metrics.")
-    app.run(host='0.0.0.0', port=8080)
+    asyncio.run(main())
