@@ -4,8 +4,7 @@ variable "ranks" {
 }
 
 resource "kubernetes_job" "master" {
-  depends_on = [kubernetes_service.ip_service, kubernetes_deployment.ip_server]
-  count      = length(var.ranks)
+  count = length(var.ranks)
   metadata {
     name = "mp-test-${count.index}"
   }
@@ -31,17 +30,40 @@ resource "kubernetes_job" "master" {
             name  = "WORLD_SIZE"
             value = length(var.ranks)
           }
+          env {
+            name  = "MASTER_ADDR"
+            value = kubernetes_service.master_service.metadata[0].name
+          }
+          env {
+            name  = "MASTER_PORT"
+            value = "80"
+          }
           resources {
             limits = {
-              cpu = "3500m"
+              cpu = "1500m"
             }
             requests = {
-              cpu = "3000m"
+              cpu = "1000m"
             }
           }
         }
         restart_policy = "Never"
       }
+    }
+  }
+}
+
+resource "kubernetes_service" "master_service" {
+  metadata {
+    name = "master-service"
+  }
+  spec {
+    selector = {
+      app = "mp-test-0"
+    }
+    port {
+      port        = 80
+      target_port = 80
     }
   }
 }

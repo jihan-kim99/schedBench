@@ -8,7 +8,7 @@ variable "master_instance_type" {
 variable "worker_instance_type" {
   type        = string
   description = "EC2 instance type for the worker nodes."
-  default     = "t2.xlarge"
+  default     = "t2.large"
 }
 variable "num_primary_workers" {
   type        = number
@@ -19,7 +19,7 @@ variable "num_primary_workers" {
 variable "num_secondary_workers" {
   type        = number
   description = "Number of worker nodes."
-  default     = 3
+  default     = 1
 }
 
 variable "volume_size" {
