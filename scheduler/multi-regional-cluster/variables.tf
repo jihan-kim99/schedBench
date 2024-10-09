@@ -8,13 +8,20 @@ variable "master_instance_type" {
 variable "worker_instance_type" {
   type        = string
   description = "EC2 instance type for the worker nodes."
-  default     = "t2.small"
+  default     = "t2.xlarge"
 }
-variable "num_workers" {
+variable "num_primary_workers" {
   type        = number
   description = "Number of worker nodes."
-  default     = 6
+  default     = 3
 }
+
+variable "num_secondary_workers" {
+  type        = number
+  description = "Number of worker nodes."
+  default     = 3
+}
+
 variable "volume_size" {
   type        = number
   description = "Size of the EBS volume in GiB to attach to the EC2 instances. The volume is used for the Kubernetes data directory (/var/lib/kubelet) and the Docker data directory (/var/lib/docker)."

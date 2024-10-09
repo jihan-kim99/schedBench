@@ -110,7 +110,7 @@ resource "aws_instance" "master" {
 }
 
 resource "aws_instance" "workers_primary" {
-  count                       = var.num_workers / 2
+  count                       = var.num_primary_workers
   provider                    = aws.primary
   ami                         = data.aws_ami.ubuntu_primary.image_id
   instance_type               = var.worker_instance_type
@@ -144,7 +144,7 @@ resource "aws_instance" "workers_primary" {
 }
 
 resource "aws_instance" "workers_secondary" {
-  count                       = var.num_workers - (var.num_workers / 2)
+  count                       = var.num_secondary_workers
   provider                    = aws.secondary
   ami                         = data.aws_ami.ubuntu_secondary.image_id
   instance_type               = var.worker_instance_type
