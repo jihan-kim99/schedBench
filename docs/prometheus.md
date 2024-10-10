@@ -8,9 +8,6 @@ helm install prometheus prometheus-community/prometheus --namespace monitoring
 helm install grafana grafana/grafana --namespace monitoring
 kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
-kubectl port-forward svc/my-prometheus-grafana 3001:80
-kubectl port-forward svc/my-prometheus-kube-prometh-prometheus 9090:9090
-
 kubectl port-forward --namespace monitoring service/grafana 3000:80
 kubectl port-forward svc/prometheus-grafana 3001:80
 kubectl port-forward svc/prometheus-kube-prometh-prometheus 9090:9090
