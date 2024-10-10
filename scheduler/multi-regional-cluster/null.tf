@@ -58,12 +58,12 @@ resource "null_resource" "post_creation" {
   }
 }
 
-# resource "null_resource" "network-topology" {
-#   depends_on = [null_resource.post_creation]
-#   provisioner "local-exec" {
-#     command = "cd ${path.module}/../network-collector-deployment-aws && terraform apply -auto-approve"
-#   }
-# }
+resource "null_resource" "network-topology" {
+  depends_on = [null_resource.post_creation]
+  provisioner "local-exec" {
+    command = "cd ${path.module}/../network-collector-deployment-aws && terraform apply -auto-approve"
+  }
+}
 
 # resource "null_resource" "monitoring" {
 #   depends_on = [null_resource.post_creation]
