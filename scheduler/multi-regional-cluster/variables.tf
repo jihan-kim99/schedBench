@@ -13,13 +13,19 @@ variable "worker_instance_type" {
 variable "num_primary_workers" {
   type        = number
   description = "Number of worker nodes."
-  default     = 3
+  default     = 2
 }
 
 variable "num_secondary_workers" {
   type        = number
   description = "Number of worker nodes."
-  default     = 1
+  default     = 2
+}
+
+variable "num_third_workers" {
+  type        = number
+  description = "Number of worker nodes."
+  default     = 2
 }
 
 variable "volume_size" {
@@ -37,6 +43,12 @@ variable "secondary_region" {
   type        = string
   description = "AWS region for the secondary VPC"
   default     = "ap-northeast-2"
+}
+
+variable "third_region" {
+  type        = string
+  description = "AWS region for the third VPC"
+  default     = "eu-west-1"
 }
 
 variable "cluster_name" {
@@ -59,6 +71,12 @@ variable "secondary_vpc_cidr" {
   default     = "10.1.0.0/16"
 }
 
+variable "third_vpc_cidr" {
+  type        = string
+  description = "CIDR block for the third VPC"
+  default     = "10.2.0.0/16"
+}
+
 variable "primary_subnet_cidr" {
   type        = string
   description = "CIDR block for the primary subnet"
@@ -69,6 +87,12 @@ variable "secondary_subnet_cidr" {
   type        = string
   description = "CIDR block for the secondary subnet"
   default     = "10.1.1.0/24"
+}
+
+variable "third_subnet_cidr" {
+  type        = string
+  description = "CIDR block for the third subnet"
+  default     = "10.2.1.0/24"
 }
 
 data "aws_caller_identity" "current" {}

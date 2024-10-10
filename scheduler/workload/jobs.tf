@@ -3,6 +3,11 @@ variable "ranks" {
   default = [0, 1, 2]
 }
 
+variable "nodes" {
+  type    = list(number)
+  default = [1, 2, 3]
+}
+
 resource "kubernetes_job" "master" {
   count = length(var.ranks)
   metadata {
