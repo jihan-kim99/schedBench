@@ -17,7 +17,12 @@ make generate && make manifests && make install
 ### controller 배포
 controllers/distributedJob_controller.go 수정  
 kx distributedjob distributedjob1 && kx deploy deploy1
+<<<<<<< Updated upstream
 
+=======
+make docker-build docker-push IMG=rfvtgbyh11/ddl:v1.0.14
+make deploy IMG=rfvtgbyh11/ddl:v1.0.14
+>>>>>>> Stashed changes
 
 ---
 

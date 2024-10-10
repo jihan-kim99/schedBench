@@ -47,13 +47,29 @@ spec:
                       items:
                         description: Dependency defines a dependency for a workload
                         properties:
-                          maxLatency:
-                            type: integer
-                          minBandwidth:
-                            type: integer
+                          bandwidth:
+                            properties:
+                              limits:
+                                type: integer
+                              requests:
+                                type: integer
+                            required:
+                            - limits
+                            type: object
+                          latency:
+                            properties:
+                              limits:
+                                type: integer
+                              requests:
+                                type: integer
+                            required:
+                            - limits
+                            type: object
                           resource:
                             type: string
                         required:
+                        - bandwidth
+                        - latency
                         - resource
                         type: object
                       type: array
@@ -92,6 +108,7 @@ spec:
                       type: array
                   required:
                   - order
+                  - phase
                   - resource
                   type: object
                 type: array

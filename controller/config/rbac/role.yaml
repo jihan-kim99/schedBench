@@ -5,6 +5,14 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pod
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - batch.ddl.com
   resources:
   - distributedjobs

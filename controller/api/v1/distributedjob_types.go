@@ -51,9 +51,14 @@ type Workload struct {
 
 // Dependency defines a dependency for a workload
 type Dependency struct {
-	Resource     string `json:"resource"`
-	MinBandwidth int    `json:"minBandwidth,omitempty"`
-	MaxLatency   int    `json:"maxLatency,omitempty"`
+	Resource  string     `json:"resource"`
+	Bandwidth Allocation `json:"bandwidth"`
+	Latency   Allocation `json:"latency"`
+}
+
+type Allocation struct {
+	Requests int `json:"requests,omitempty"`
+	Limits   int `json:"limits"`
 }
 
 // DistributedJobStatus defines the observed state of DistributedJob
@@ -66,7 +71,7 @@ type DistributedJobStatus struct {
 type WorkloadStatus struct {
 	Resource       string          `json:"resource"`                 // 워크로드 리소스 이름
 	Order          int             `json:"order"`                    // 스케줄링되는 순서
-	Phase          string          `json:"phase,omitempty"`          // 현재 상태 (예: Not Pending, Running, Succeeded, Failed, Unknown)
+	Phase          string          `json:"phase"`                    // 현재 상태 (예: Not Scheduled, Pending, Running, Succeeded, Failed, Unknown)
 	SchedulingInfo []PodScheduling `json:"schedulingInfo,omitempty"` // 스케줄링된 리소스의 Pod 이름
 }
 

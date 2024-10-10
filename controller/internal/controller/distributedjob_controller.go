@@ -44,6 +44,7 @@ type DistributedJobReconciler struct {
 // +kubebuilder:rbac:groups=batch.ddl.com,resources=distributedjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.ddl.com,resources=distributedjobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch.ddl.com,resources=distributedjobs/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=pod,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -58,7 +59,6 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile running")
 
-	// TODO(user): your logic here
 	var distributedJob batchv1.DistributedJob
 	if err := r.Get(ctx, req.NamespacedName, &distributedJob); err != nil {
 		logger.Error(err, "Failed to fetch DistributedJob")
@@ -82,11 +82,9 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		"Not scheduled": -1,
 	}
 
-	// Pod 생성에 대한 Watcher 필요
-
-	// Iterating workloads and check for pod statue
+	// Iterating workloads and check for pod status
 	for _, workload := range distributedJob.Spec.Workloads {
-		// Get pods which have same resource label in same namespace CRD
+		// Get pods which have same resource label in same namespace with CRD
 		var podList corev1.PodList
 		if err := r.List(ctx, &podList, client.MatchingLabels{"resource": workload.Resource}, client.InNamespace(distributedJob.Namespace)); err != nil {
 			logger.Error(err, "Failed to list pods for workload", "workload", workload.Resource)
@@ -112,7 +110,6 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				PodName:  pod.Name,
 				NodeName: pod.Spec.NodeName,
 			}
-
 			distributedJob.Status.WorkloadStatuses[idx].SchedulingInfo = append(distributedJob.Status.WorkloadStatuses[idx].SchedulingInfo, podScheduling)
 			if statusMap[distributedJob.Status.WorkloadStatuses[idx].Phase] < statusMap[getPodPhase(pod.Status.Phase)] {
 				distributedJob.Status.WorkloadStatuses[idx].Phase = getPodPhase(pod.Status.Phase)
@@ -129,8 +126,8 @@ func (r *DistributedJobReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func topologicalSort(workloads []batchv1.Workload) ([]batchv1.WorkloadStatus, error) {
-	inDegree := make(map[string]int)   // 각 Workload의 in-degree 카운트
-	graph := make(map[string][]string) // 각 Workload 간의 의존 관계 그래프
+	inDegree := make(map[string]int)
+	graph := make(map[string][]string)
 	queue := []string{}
 	result := []batchv1.WorkloadStatus{}
 	order := 1
@@ -204,7 +201,7 @@ func (r *DistributedJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batchv1.DistributedJob{}).
 		Watches(
-			&corev1.Pod{}, // Pod 리소스 감시
+			&corev1.Pod{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForPod),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
