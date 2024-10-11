@@ -1,3 +1,10 @@
+# namespace
+resource "kubernetes_namespace" "network_metrics" {
+  metadata {
+    name = "network-metrics"
+  }
+}
+
 # Custom Resource Definition (CRD) for NetworkMetrics
 resource "kubernetes_manifest" "network_metrics_crd" {
   manifest = {
@@ -44,7 +51,7 @@ resource "kubernetes_manifest" "network_metrics_crd" {
 resource "kubernetes_service_account" "master_sa" {
   metadata {
     name      = "network-metrics-master-sa"
-    namespace = "default" # Adjust if using a different namespace
+    namespace = kubernetes_namespace.network_metrics.metadata[0].name
   }
 }
 
@@ -87,7 +94,8 @@ resource "kubernetes_cluster_role_binding" "master_role_binding" {
 # Deployment for the master
 resource "kubernetes_deployment" "master" {
   metadata {
-    name = "network-metrics-master"
+    name      = "network-metrics-master"
+    namespace = kubernetes_namespace.network_metrics.metadata[0].name
     labels = {
       app = "network-metrics-master"
     }
@@ -140,7 +148,8 @@ resource "kubernetes_deployment" "master" {
 resource "kubernetes_service" "master_service" {
   depends_on = [kubernetes_deployment.master]
   metadata {
-    name = "network-metrics-master-service"
+    name      = "network-metrics-master-service"
+    namespace = kubernetes_namespace.network_metrics.metadata[0].name
   }
 
   spec {
@@ -161,7 +170,7 @@ resource "kubernetes_service" "master_service" {
 resource "kubernetes_service_account" "daemonset_sa" {
   metadata {
     name      = "network-metrics-collector-sa"
-    namespace = "default" # Adjust if using a different namespace
+    namespace = kubernetes_namespace.network_metrics.metadata[0].name
   }
 }
 
@@ -198,7 +207,8 @@ resource "kubernetes_cluster_role_binding" "daemonset_role_binding" {
 # DaemonSet for network metric collection
 resource "kubernetes_daemonset" "network_metrics" {
   metadata {
-    name = "network-metrics-collector"
+    name      = "network-metrics-collector"
+    namespace = kubernetes_namespace.network_metrics.metadata[0].name
     labels = {
       app = "network-metrics-collector"
     }

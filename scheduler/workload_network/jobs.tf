@@ -5,11 +5,12 @@ variable "ranks" {
 
 variable "layers" {
   type    = list(string)
-  default = ["bottom-layer", "mid-layer", "top-layer"]
+  default = ["top-layer", "mid-layer", "bottom-layer"]
 }
 
 resource "kubernetes_job" "master" {
-  count = length(var.ranks)
+  depends_on = [kubernetes_manifest.distributed_job]
+  count      = length(var.ranks)
   metadata {
     name = "mp-test-${count.index}"
   }
@@ -26,6 +27,19 @@ resource "kubernetes_job" "master" {
       }
       spec {
         scheduler_name = "scheduler-plugins-scheduler"
+        affinity {
+          node_affinity {
+            required_during_scheduling_ignored_during_execution {
+              node_selector_term {
+                match_expressions {
+                  key      = "kubernetes.io/hostname"
+                  operator = "In"
+                  values   = ["worker-${var.ranks[count.index]}"]
+                }
+              }
+            }
+          }
+        }
         container {
           name  = "mp-test-${count.index}"
           image = "jinnkenny99/mp-test:latest"

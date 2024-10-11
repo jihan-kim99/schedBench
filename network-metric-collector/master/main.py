@@ -124,12 +124,12 @@ def process_metrics(all_metrics):
             # Process bandwidth
             bandwidth = data.get('bandwidth_mbps')
             if bandwidth is not None:
-                network_bandwidth[source_node][target_node] = bandwidth
+                network_bandwidth[source_node][target_node] = float(bandwidth)
             
             # Process latency
             latency_ms = data.get('latency')
             if isinstance(latency_ms, (int, float)):  # Ensure it's a valid number
-                network_latency[source_node][target_node] = latency_ms
+                network_latency[source_node][target_node] = float(latency_ms)
             else:
                 logging.error(f"Invalid latency data for {source_node} -> {target_node}: {latency_ms}")
     

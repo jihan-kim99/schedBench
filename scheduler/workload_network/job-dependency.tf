@@ -18,8 +18,8 @@ resource "kubernetes_manifest" "distributed_job" {
                 limits   = 50
               }
               latency = {
-                requests = 5
-                limits   = 15
+                requests = 10
+                limits   = 20
               }
             }
           ]
@@ -30,12 +30,12 @@ resource "kubernetes_manifest" "distributed_job" {
             {
               resource = "bottom-layer"
               bandwidth = {
-                requests = 200
-                limits   = 100
+                requests = 250
+                limits   = 10
               }
               latency = {
                 requests = 10
-                limits   = 15
+                limits   = 50
               }
             }
           ]

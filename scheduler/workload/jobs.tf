@@ -5,7 +5,7 @@ variable "ranks" {
 
 variable "nodes" {
   type    = list(number)
-  default = [1, 2, 3]
+  default = [1, 3, 5]
 }
 
 resource "kubernetes_job" "master" {
@@ -24,6 +24,19 @@ resource "kubernetes_job" "master" {
         }
       }
       spec {
+        # affinity {
+        #   node_affinity {
+        #     required_during_scheduling_ignored_during_execution {
+        #       node_selector_term {
+        #         match_expressions {
+        #           key      = "kubernetes.io/hostname"
+        #           operator = "In"
+        #           values   = ["worker-${var.nodes[count.index]}"]
+        #         }
+        #       }
+        #     }
+        #   }
+        # }
         container {
           name  = "mp-test-${count.index}"
           image = "jinnkenny99/mp-test:latest"
