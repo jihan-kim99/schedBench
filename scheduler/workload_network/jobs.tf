@@ -11,6 +11,12 @@ variable "layers" {
 resource "kubernetes_job" "master" {
   depends_on = [kubernetes_manifest.distributed_job]
   count      = length(var.ranks)
+
+  wait_for_completion = true
+  timeouts {
+    create = "2m"
+    update = "2m"
+  }
   metadata {
     name = "mp-test-${count.index}"
   }
@@ -27,19 +33,6 @@ resource "kubernetes_job" "master" {
       }
       spec {
         scheduler_name = "scheduler-plugins-scheduler"
-        affinity {
-          node_affinity {
-            required_during_scheduling_ignored_during_execution {
-              node_selector_term {
-                match_expressions {
-                  key      = "kubernetes.io/hostname"
-                  operator = "In"
-                  values   = ["worker-${var.ranks[count.index]}"]
-                }
-              }
-            }
-          }
-        }
         container {
           name  = "mp-test-${count.index}"
           image = "jinnkenny99/mp-test:latest"

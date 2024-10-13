@@ -13,6 +13,11 @@ provider "aws" {
   alias  = "secondary"
 }
 
+provider "aws" {
+  region = var.third_region
+  alias  = "third"
+}
+
 # EC2 Instances
 data "aws_ami" "ubuntu_primary" {
   provider    = aws.primary
@@ -34,8 +39,17 @@ data "aws_ami" "ubuntu_secondary" {
   }
 }
 
-# Key pair
+data "aws_ami" "ubuntu_third" {
+  provider    = aws.third
+  owners      = ["099720109477"]
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+}
 
+# Key pair
 resource "aws_key_pair" "main" {
   provider        = aws.primary
   key_name_prefix = "${var.cluster_name}-"
@@ -46,6 +60,13 @@ resource "aws_key_pair" "main" {
 # Create a replica of the key pair in the secondary region
 resource "aws_key_pair" "secondary" {
   provider        = aws.secondary
+  key_name_prefix = "${var.cluster_name}-"
+  public_key      = file(var.public_key_file)
+  tags            = local.tags
+}
+
+resource "aws_key_pair" "third" {
+  provider        = aws.third
   key_name_prefix = "${var.cluster_name}-"
   public_key      = file(var.public_key_file)
   tags            = local.tags
@@ -173,6 +194,40 @@ resource "aws_instance" "workers_secondary" {
       master_public_ip  = null,
       master_private_ip = aws_instance.master.private_ip,
       worker_index      = count.index + length(aws_instance.workers_primary)
+    }
+  )
+}
+
+resource "aws_instance" "workers_third" {
+  count                       = var.num_third_workers
+  provider                    = aws.third
+  ami                         = data.aws_ami.ubuntu_third.image_id
+  instance_type               = var.worker_instance_type
+  subnet_id                   = aws_subnet.third.id
+  key_name                    = aws_key_pair.third.key_name
+  associate_public_ip_address = true
+  vpc_security_group_ids = [
+    aws_security_group.egress_third.id,
+    aws_security_group.ingress_internal_third.id,
+    aws_security_group.ingress_ssh_third.id
+  ]
+  root_block_device {
+    volume_size = var.volume_size
+  }
+  tags = merge(local.tags, {
+    "terraform-kubeadm:node"        = "worker-third-${count.index}",
+    "topology.kubernetes.io/region" = var.third_region
+    "topology.kubernetes.io/zone"   = "${var.third_region}a"
+  })
+  user_data = templatefile(
+    "${path.module}/user-data.tftpl",
+    {
+      node              = "worker",
+      token             = local.token,
+      cidr              = var.pod_network_cidr_block,
+      master_public_ip  = null,
+      master_private_ip = aws_instance.master.private_ip,
+      worker_index      = count.index + length(aws_instance.workers_primary) + length(aws_instance.workers_secondary)
     }
   )
 }
