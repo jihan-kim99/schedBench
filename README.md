@@ -2,6 +2,6 @@
 - [x] simplest scheduler
 - [x] controller implementation
 - [x] daemonset for network metric
-- [ ] scheduler plugins implementation
-- [ ] benchmark
+- [x] scheduler plugins implementation
+- [x] benchmark
 
